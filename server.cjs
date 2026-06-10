@@ -7,7 +7,15 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const dbPath = path.join(__dirname, 'motoescape.db');
+const dbPath = process.env.DATABASE_PATH || path.join(__dirname, 'motoescape.db');
+
+// Ensure database directory exists dynamically
+const fs = require('fs');
+const dbDir = path.dirname(dbPath);
+if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+}
+
 const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
         console.error('Error opening database', err);
@@ -133,6 +141,17 @@ app.post('/api/bookings', (req, res) => {
             res.json({ id: this.lastID, tour, date, name, email, skillLevel, bikePreference });
         }
     );
+});
+
+// Serve static frontend files in production
+app.use(express.static(path.join(__dirname, 'dist')));
+
+// Fallback all non-API GET requests to index.html for React SPA router
+app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) {
+        return next();
+    }
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 const PORT = process.env.PORT || 5000;
