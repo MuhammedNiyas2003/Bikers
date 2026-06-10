@@ -27,3 +27,9 @@ dist-ssr
 *.db
 motoescape.db
 
+# Secrets
+.env
+.env.local
+.env.production
+.env.development
+

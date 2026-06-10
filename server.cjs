@@ -1,6 +1,29 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
+
+// Load local .env file if it exists
+try {
+    const envPath = path.join(__dirname, '.env');
+    if (fs.existsSync(envPath)) {
+        const envConfig = fs.readFileSync(envPath, 'utf-8');
+        envConfig.split('\n').forEach(line => {
+            const trimmed = line.trim();
+            if (!trimmed || trimmed.startsWith('#')) return;
+            const eqIndex = trimmed.indexOf('=');
+            if (eqIndex === -1) return;
+            const key = trimmed.substring(0, eqIndex).trim();
+            const val = trimmed.substring(eqIndex + 1).trim().replace(/(^['"]|['"]$)/g, '');
+            if (key) {
+                process.env[key] = val;
+            }
+        });
+        console.log('Local environment variables loaded from .env');
+    }
+} catch (err) {
+    console.error('Error loading .env file:', err);
+}
 
 const app = express();
 app.use(cors());
@@ -26,7 +49,6 @@ if (isPostgres) {
     const dbPath = process.env.DATABASE_PATH || path.join(__dirname, 'motoescape.db');
     
     // Ensure database directory exists dynamically
-    const fs = require('fs');
     const dbDir = path.dirname(dbPath);
     if (!fs.existsSync(dbDir)) {
         fs.mkdirSync(dbDir, { recursive: true });
