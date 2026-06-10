@@ -11,7 +11,7 @@ const presets = [
     { key: 'hero', label: 'Twilight Explorer', img: heroImg }
 ];
 
-const AdminDashboard = ({ isOpen, onClose }) => {
+const AdminDashboard = () => {
     const [activeTab, setActiveTab] = useState('bookings');
     const [bookings, setBookings] = useState([]);
     const [tours, setTours] = useState([]);
@@ -67,11 +67,16 @@ const AdminDashboard = ({ isOpen, onClose }) => {
         const auth = sessionStorage.getItem('isAdminAuth') === 'true';
         setIsAuthenticated(auth);
         
-        if (isOpen && auth) {
+        if (auth) {
             fetchBookings();
             fetchTours();
         }
-    }, [isOpen]);
+    }, []);
+
+    const handleClose = () => {
+        const rootPath = window.location.pathname.startsWith('/Bikers') ? '/Bikers/' : '/';
+        window.location.href = rootPath;
+    };
 
     const handleLoginSubmit = (e) => {
         e.preventDefault();
@@ -244,8 +249,6 @@ const AdminDashboard = ({ isOpen, onClose }) => {
         });
     };
 
-    if (!isOpen) return null;
-
     const backdropVariants = {
         hidden: { opacity: 0 },
         visible: { opacity: 1 }
@@ -263,7 +266,6 @@ const AdminDashboard = ({ isOpen, onClose }) => {
             initial="hidden"
             animate="visible"
             exit="hidden"
-            onClick={onClose}
         >
             <Motion.div 
                 className="admin-modal-content"
@@ -271,7 +273,7 @@ const AdminDashboard = ({ isOpen, onClose }) => {
                 variants={modalVariants}
                 onClick={(e) => e.stopPropagation()}
             >
-                <button className="admin-close-btn" onClick={onClose} aria-label="Close Admin Dashboard">&times;</button>
+                <button className="admin-close-btn" onClick={handleClose} aria-label="Close Admin Dashboard">&times;</button>
                 
                 {!isAuthenticated ? (
                     <div className="admin-login-container" style={{ width: '100%' }}>

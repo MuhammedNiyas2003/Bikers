@@ -282,6 +282,56 @@ a {
     gap: 2.5rem;
 }
 
+.tours-grid.scrollable-slider {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    gap: 2.5rem;
+    padding: 1.5rem 1rem;
+    margin: -1.5rem -1rem;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 69, 0, 0.4) rgba(255, 255, 255, 0.02);
+}
+
+.tours-grid.scrollable-slider::-webkit-scrollbar {
+    height: 8px;
+}
+
+.tours-grid.scrollable-slider::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 4px;
+}
+
+.tours-grid.scrollable-slider::-webkit-scrollbar-thumb {
+    background: rgba(255, 69, 0, 0.3);
+    border-radius: 4px;
+    transition: var(--transition);
+}
+
+.tours-grid.scrollable-slider::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-color);
+}
+
+.tours-grid.scrollable-slider .tour-card {
+    flex: 0 0 calc(33.333% - 1.7rem);
+    min-width: 310px;
+    scroll-snap-align: start;
+    box-sizing: border-box;
+}
+
+@media (max-width: 1024px) {
+    .tours-grid.scrollable-slider .tour-card {
+        flex: 0 0 calc(50% - 1.25rem);
+    }
+}
+
+@media (max-width: 768px) {
+    .tours-grid.scrollable-slider .tour-card {
+        flex: 0 0 100%;
+    }
+}
+
 .tour-card {
     background: var(--bg-surface);
     border-radius: 16px;

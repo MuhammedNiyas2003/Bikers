@@ -85,7 +85,7 @@ const Tours = ({ onBookTour }) => {
                     No rides found. Add rides from the Admin Panel!
                 </div>
             ) : (
-                <div className="tours-grid">
+                <div className={`tours-grid ${tours.length > 3 ? 'scrollable-slider' : ''}`}>
                     {tours.map((tour, index) => (
                         <Motion.div 
                             className="tour-card" 

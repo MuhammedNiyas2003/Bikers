@@ -12,57 +12,35 @@ import AdminDashboard from './components/AdminDashboard';
 
 function App() {
   const [isBookingOpen, setIsBookingOpen] = useState(false);
-  const [isAdminOpen, setIsAdminOpen] = useState(false);
-  const [isAdminMode, setIsAdminMode] = useState(false);
   const [selectedTour, setSelectedTour] = useState('');
 
-  useEffect(() => {
-    // Check local storage for persistent admin mode
-    const savedAdmin = localStorage.getItem('isAdmin') === 'true';
-    
-    // Check URL parameters for explicit overrides (?admin=true or ?admin=false / ?logout=true)
-    const queryParams = new URLSearchParams(window.location.search);
-    const adminParam = queryParams.get('admin');
-    
-    if (adminParam === 'true') {
-      setIsAdminMode(true);
-      localStorage.setItem('isAdmin', 'true');
-    } else if (adminParam === 'false' || queryParams.get('logout') === 'true') {
-      setIsAdminMode(false);
-      localStorage.removeItem('isAdmin');
-    } else {
-      setIsAdminMode(savedAdmin);
-    }
-  }, []);
+  // Path detection to separate admin and customer pages
+  const path = window.location.pathname;
+  const normalized = path.replace(/^\/Bikers/, '').replace(/\/$/, '');
+  const isRouteAdmin = normalized === '/admin';
 
   const openBookingModal = (tourName = '') => {
     setSelectedTour(tourName);
     setIsBookingOpen(true);
   };
 
+  if (isRouteAdmin) {
+    return (
+      <AnimatePresence mode="wait">
+        <AdminDashboard />
+      </AnimatePresence>
+    );
+  }
+
   return (
     <>
-      <Navbar 
-        onBookNow={() => openBookingModal('')} 
-        onOpenAdmin={isAdminMode ? () => setIsAdminOpen(true) : undefined} 
-      />
+      <Navbar onBookNow={() => openBookingModal('')} />
       <Hero onBookNow={() => openBookingModal('')} />
       <Features />
       <Tours onBookTour={(tourName) => openBookingModal(tourName)} />
       <About />
       <Footer />
       <FloatingWhatsApp />
-      
-      {/* Conditionally display floating admin gear icon ONLY for authorized admin sessions */}
-      {isAdminMode && (
-        <button 
-          className="floating-admin-btn" 
-          onClick={() => setIsAdminOpen(true)}
-          title="Admin Dashboard"
-        >
-          ⚙️
-        </button>
-      )}
 
       <AnimatePresence mode="wait">
         {isBookingOpen && (
@@ -70,12 +48,6 @@ function App() {
             isOpen={isBookingOpen} 
             onClose={() => setIsBookingOpen(false)} 
             defaultTour={selectedTour} 
-          />
-        )}
-        {isAdminOpen && (
-          <AdminDashboard 
-            isOpen={isAdminOpen} 
-            onClose={() => setIsAdminOpen(false)} 
           />
         )}
       </AnimatePresence>

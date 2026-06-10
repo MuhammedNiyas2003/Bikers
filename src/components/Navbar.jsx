@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion as Motion } from 'framer-motion';
 
-const Navbar = ({ onBookNow, onOpenAdmin }) => {
+const Navbar = ({ onBookNow }) => {
     const [scrolled, setScrolled] = useState(false);
 
     useEffect(() => {
@@ -31,7 +31,6 @@ const Navbar = ({ onBookNow, onOpenAdmin }) => {
                 <a href="#home">Home</a>
                 <a href="#tours">Tours</a>
                 <a href="#about">About</a>
-                {onOpenAdmin && <button onClick={onOpenAdmin} className="admin-nav-btn">Admin</button>}
             </nav>
             <button onClick={onBookNow} className="btn btn-primary nav-btn">Book Now</button>
         </Motion.header>
