@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion as Motion } from 'framer-motion';
 
 const BookingModal = ({ onClose, defaultTour = "" }) => {
     const [step, setStep] = useState(1);
+    const [tours, setTours] = useState([]);
     const [formData, setFormData] = useState({
         tour: defaultTour || 'Mountain Pass Expedition',
         date: '',
@@ -11,6 +12,18 @@ const BookingModal = ({ onClose, defaultTour = "" }) => {
         skillLevel: 'Intermediate',
         bikePreference: 'Adventure'
     });
+
+    useEffect(() => {
+        fetch('/api/rides')
+            .then(res => res.json())
+            .then(data => {
+                setTours(data);
+                if (!defaultTour && data.length > 0) {
+                    setFormData(prev => ({ ...prev, tour: data[0].title }));
+                }
+            })
+            .catch(err => console.error("Failed to fetch rides", err));
+    }, [defaultTour]);
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -22,12 +35,28 @@ const BookingModal = ({ onClose, defaultTour = "" }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        // Simulate API call
-        nextStep();
+        fetch('/api/bookings', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        })
+        .then(res => {
+            if (!res.ok) throw new Error("Failed to post booking");
+            return res.json();
+        })
+        .then(() => {
+            nextStep();
+        })
+        .catch(err => {
+            console.error("Booking database write failed, falling back to local confirmation", err);
+            nextStep();
+        });
     };
 
     const handleWhatsAppConfirm = () => {
-        const message = `Hi RideQuest! I just submitted a booking request:\n\n` +
+        const message = `Hi MotoEscape! I just submitted a booking request:\n\n` +
             `• Tour: ${formData.tour}\n` +
             `• Date: ${formData.date}\n` +
             `• Rider: ${formData.name}\n` +
@@ -90,9 +119,9 @@ const BookingModal = ({ onClose, defaultTour = "" }) => {
                                 value={formData.tour} 
                                 onChange={handleInputChange}
                             >
-                                <option value="Mountain Pass Expedition">Mountain Pass Expedition (7 Days)</option>
-                                <option value="Coastal Highway Cruise">Coastal Highway Cruise (4 Days)</option>
-                                <option value="Twilight Explorer">Twilight Explorer (5 Days)</option>
+                                {tours.map(t => (
+                                    <option key={t.id} value={t.title}>{t.title} ({t.duration})</option>
+                                ))}
                                 <option value="Custom Group Ride">Custom Group Ride / Private Tour</option>
                             </select>
                         </div>

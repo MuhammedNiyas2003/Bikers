@@ -31,7 +31,7 @@ const Features = () => {
                 transition={{ duration: 0.6 }}
                 viewport={{ once: true }}
             >
-                <h2>Why Choose <span>RideQuest</span></h2>
+                <h2>Why Choose <span>MotoEscape</span></h2>
                 <p>We provide the ultimate blend of freedom, exploration, and community on two wheels.</p>
             </Motion.div>
 

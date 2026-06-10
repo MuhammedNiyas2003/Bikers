@@ -4,11 +4,11 @@ const Footer = () => {
     return (
         <footer>
             <div className="footer-content">
-                <div className="logo">RideQuest<span>.</span></div>
+                <div className="logo">MotoEscape<span>.</span></div>
                 <p>Your ultimate motorcycle adventure partner. Ride Beyond Limits.</p>
             </div>
             <div className="footer-bottom">
-                &copy; {new Date().getFullYear()} RideQuest. All rights reserved.
+                &copy; {new Date().getFullYear()} MotoEscape. All rights reserved.
             </div>
         </footer>
     );

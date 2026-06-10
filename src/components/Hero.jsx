@@ -25,7 +25,7 @@ const Hero = ({ onBookNow }) => {
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ duration: 0.8, delay: 0.5 }}
                 >
-                    Welcome to RideQuest – where every ride becomes an adventure. Discover expertly planned routes, guided motorcycle tours, group adventures, and connect with a passionate riding community.
+                    Welcome to MotoEscape – where every ride becomes an adventure. Discover expertly planned routes, guided motorcycle tours, group adventures, and connect with a passionate riding community.
                 </Motion.p>
                 
                 <Motion.div 

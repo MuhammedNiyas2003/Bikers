@@ -28,7 +28,7 @@ const About = () => {
                     transition={{ duration: 0.6, delay: 0.2 }}
                     viewport={{ once: true }}
                 >
-                    At RideQuest, we believe biking is not just transportation—it's a lifestyle. Our mission is to connect riders, explore new destinations, and create lifelong memories on two wheels.
+                    At MotoEscape, we believe biking is not just transportation—it's a lifestyle. Our mission is to connect riders, explore new destinations, and create lifelong memories on two wheels.
                 </Motion.p>
                 <Motion.p
                     initial={{ y: 20, opacity: 0 }}
