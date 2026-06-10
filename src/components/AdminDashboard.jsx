@@ -29,6 +29,12 @@ const AdminDashboard = ({ isOpen, onClose }) => {
     });
     const [editingId, setEditingId] = useState(null);
 
+    // Login and Authentication states
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [loginData, setLoginData] = useState({ username: '', password: '' });
+    const [loginError, setLoginError] = useState('');
+    const [isLoggingIn, setIsLoggingIn] = useState(false);
+
     const fetchBookings = () => {
         setLoadingBookings(true);
         fetch('/api/bookings')
@@ -58,11 +64,48 @@ const AdminDashboard = ({ isOpen, onClose }) => {
     };
 
     useEffect(() => {
-        if (isOpen) {
+        const auth = sessionStorage.getItem('isAdminAuth') === 'true';
+        setIsAuthenticated(auth);
+        
+        if (isOpen && auth) {
             fetchBookings();
             fetchTours();
         }
     }, [isOpen]);
+
+    const handleLoginSubmit = (e) => {
+        e.preventDefault();
+        setLoginError('');
+        setIsLoggingIn(true);
+        
+        fetch('/api/admin/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(loginData)
+        })
+        .then(res => {
+            if (!res.ok) throw new Error("Invalid username or password");
+            return res.json();
+        })
+        .then(() => {
+            setIsAuthenticated(true);
+            sessionStorage.setItem('isAdminAuth', 'true');
+            fetchBookings();
+            fetchTours();
+            setIsLoggingIn(false);
+        })
+        .catch(err => {
+            setLoginError(err.message);
+            setIsLoggingIn(false);
+        });
+    };
+
+    const handleLogout = () => {
+        setIsAuthenticated(false);
+        sessionStorage.removeItem('isAdminAuth');
+        setLoginData({ username: '', password: '' });
+        setLoginError('');
+    };
 
     const handleFileChange = (e) => {
         const file = e.target.files[0];
@@ -224,30 +267,79 @@ const AdminDashboard = ({ isOpen, onClose }) => {
         >
             <Motion.div 
                 className="admin-modal-content"
+                style={!isAuthenticated ? { maxWidth: '450px', height: 'auto', padding: '3rem' } : {}}
                 variants={modalVariants}
                 onClick={(e) => e.stopPropagation()}
             >
                 <button className="admin-close-btn" onClick={onClose} aria-label="Close Admin Dashboard">&times;</button>
                 
-                <div className="admin-header">
-                    <h2>MotoEscape <span>Admin Dashboard</span></h2>
-                    <div className="admin-tabs">
-                        <button 
-                            className={`admin-tab-btn ${activeTab === 'bookings' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('bookings')}
-                        >
-                            Bookings ({bookings.length})
-                        </button>
-                        <button 
-                            className={`admin-tab-btn ${activeTab === 'rides' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('rides')}
-                        >
-                            Manage Rides ({tours.length})
-                        </button>
+                {!isAuthenticated ? (
+                    <div className="admin-login-container" style={{ width: '100%' }}>
+                        <div className="admin-login-header" style={{ marginBottom: '2rem', textAlign: 'center' }}>
+                            <h2 style={{ fontSize: '2rem', marginBottom: '0.5rem', fontFamily: 'var(--font-heading)' }}>
+                                MotoEscape <span>Admin Login</span>
+                            </h2>
+                            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                                Enter credentials to access dashboard configuration.
+                            </p>
+                        </div>
+                        {loginError && (
+                            <div className="admin-login-error" style={{ background: 'rgba(255, 68, 68, 0.1)', border: '1px solid rgba(255, 68, 68, 0.3)', color: '#ff4444', borderRadius: '8px', padding: '0.8rem', marginBottom: '1.5rem', fontSize: '0.9rem', textAlign: 'center' }}>
+                                {loginError}
+                            </div>
+                        )}
+                        <form onSubmit={handleLoginSubmit} className="admin-login-form" style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+                            <div className="admin-input-group">
+                                <label htmlFor="login-username">Username</label>
+                                <input 
+                                    id="login-username"
+                                    type="text" 
+                                    placeholder="Enter username" 
+                                    value={loginData.username}
+                                    onChange={(e) => setLoginData(prev => ({ ...prev, username: e.target.value }))}
+                                    required 
+                                />
+                            </div>
+                            <div className="admin-input-group">
+                                <label htmlFor="login-password">Password</label>
+                                <input 
+                                    id="login-password"
+                                    type="password" 
+                                    placeholder="Enter password" 
+                                    value={loginData.password}
+                                    onChange={(e) => setLoginData(prev => ({ ...prev, password: e.target.value }))}
+                                    required 
+                                />
+                            </div>
+                            <button type="submit" className="btn btn-primary login-btn" style={{ width: '100%', marginTop: '0.5rem', padding: '0.8rem' }} disabled={isLoggingIn}>
+                                {isLoggingIn ? 'Logging in...' : 'Access Dashboard'}
+                            </button>
+                        </form>
                     </div>
-                </div>
+                ) : (
+                    <>
+                        <div className="admin-header">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                <h2 style={{ marginBottom: 0 }}>MotoEscape <span>Admin Dashboard</span></h2>
+                                <button className="admin-btn-action admin-btn-delete" style={{ padding: '0.5rem 1rem' }} onClick={handleLogout}>Log Out</button>
+                            </div>
+                            <div className="admin-tabs">
+                                <button 
+                                    className={`admin-tab-btn ${activeTab === 'bookings' ? 'active' : ''}`}
+                                    onClick={() => setActiveTab('bookings')}
+                                >
+                                    Bookings ({bookings.length})
+                                </button>
+                                <button 
+                                    className={`admin-tab-btn ${activeTab === 'rides' ? 'active' : ''}`}
+                                    onClick={() => setActiveTab('rides')}
+                                >
+                                    Manage Rides ({tours.length})
+                                </button>
+                            </div>
+                        </div>
 
-                <div className="admin-body">
+                        <div className="admin-body">
                     {activeTab === 'bookings' && (
                         <div>
                             {loadingBookings ? (
@@ -514,7 +606,9 @@ const AdminDashboard = ({ isOpen, onClose }) => {
                             </div>
                         </div>
                     )}
-                </div>
+                        </div>
+                    </>
+                )}
             </Motion.div>
         </Motion.div>
     );

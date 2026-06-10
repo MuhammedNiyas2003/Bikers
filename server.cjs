@@ -182,24 +182,9 @@ function createTables() {
         try {
             await dbAdapter.run(ridesTableSql);
             await dbAdapter.run(bookingsTableSql);
-            
-            // Check if rides table is empty, seed default rides
-            const row = await dbAdapter.get("SELECT COUNT(*) AS count FROM rides");
-            const count = isPostgres ? parseInt(row.count) : row.count;
-            if (count === 0) {
-                await dbAdapter.run("INSERT INTO rides (title, image, duration, \"desc\", price) VALUES (?, ?, ?, ?, ?)", [
-                    "Mountain Pass Expedition", "mountain", "7 Days", "Conquer the high-altitude twisting roads and breathe in the thin, crisp mountain air. The ultimate test of endurance.", "₹1,25,000"
-                ]);
-                await dbAdapter.run("INSERT INTO rides (title, image, duration, \"desc\", price) VALUES (?, ?, ?, ?, ?)", [
-                    "Coastal Highway Cruise", "coastal", "4 Days", "Cruise the stunning coastal cliffs with the ocean breeze in your face. A relaxed, scenic ride packed with stunning views.", "₹75,000"
-                ]);
-                await dbAdapter.run("INSERT INTO rides (title, image, duration, \"desc\", price) VALUES (?, ?, ?, ?, ?)", [
-                    "Twilight Explorer", "hero", "5 Days", "Ride into the sunset on open, endless highways. Perfect for those who love night-riding and campfire stories.", "₹99,000"
-                ]);
-                console.log("Default rides seeded.");
-            }
+            console.log("Database tables initialized.");
         } catch (err) {
-            console.error("Error creating or seeding database:", err);
+            console.error("Error creating database:", err);
         }
     };
     runInit();
@@ -207,6 +192,20 @@ function createTables() {
 
 // Invoke table setup
 createTables();
+
+// API Route for Admin Login
+app.post('/api/admin/login', (req, res) => {
+    const { username, password } = req.body;
+    
+    const adminUser = process.env.ADMIN_USERNAME || 'admin';
+    const adminPass = process.env.ADMIN_PASSWORD || 'motoescape123';
+    
+    if (username === adminUser && password === adminPass) {
+        res.json({ success: true, token: 'motoescape_admin_session_token' });
+    } else {
+        res.status(401).json({ success: false, error: 'Invalid username or password' });
+    }
+});
 
 // API Routes for rides
 app.get('/api/rides', async (req, res) => {
