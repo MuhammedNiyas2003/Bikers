@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { motion as Motion } from 'framer-motion';
 import mountainImg from '../../assets/images/mountain_tour_1776185326597.png';
 import coastalImg from '../../assets/images/coastal_tour_1776185344542.png';
 import heroImg from '../../assets/images/hero_biker_1776185308389.png';
@@ -30,7 +30,7 @@ const toursData = [
     }
 ];
 
-const Tours = () => {
+const Tours = ({ onBookTour }) => {
     const waNumber = '919391790693';
 
     const handleEnquire = (tourName) => {
@@ -41,7 +41,7 @@ const Tours = () => {
 
     return (
         <section id="tours" className="tours-section">
-            <motion.div 
+            <Motion.div 
                 className="section-header"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -50,11 +50,11 @@ const Tours = () => {
             >
                 <h2>Featured <span>Rides</span></h2>
                 <p>Select your next unforgettable journey and let's configure the details.</p>
-            </motion.div>
+            </Motion.div>
 
             <div className="tours-grid">
                 {toursData.map((tour, index) => (
-                    <motion.div 
+                    <Motion.div 
                         className="tour-card" 
                         key={tour.id}
                         initial={{ opacity: 0, y: 40 }}
@@ -70,16 +70,24 @@ const Tours = () => {
                             <h3>{tour.title}</h3>
                             <p>{tour.desc}</p>
                             <div className="tour-footer">
-                                <span className="price">From {tour.price}</span>
-                                <button 
-                                    className="btn btn-outline wa-enquire-btn"
-                                    onClick={() => handleEnquire(tour.title)}
-                                >
-                                    Enquire
-                                </button>
+                                <span className="price">{tour.price}</span>
+                                <div className="tour-actions-btns">
+                                    <button 
+                                        className="btn btn-primary btn-sm"
+                                        onClick={() => onBookTour(tour.title)}
+                                    >
+                                        Book Now
+                                    </button>
+                                    <button 
+                                        className="btn btn-outline btn-sm wa-enquire-btn"
+                                        onClick={() => handleEnquire(tour.title)}
+                                    >
+                                        Enquire
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </motion.div>
+                    </Motion.div>
                 ))}
             </div>
         </section>

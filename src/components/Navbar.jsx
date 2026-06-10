@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion as Motion } from 'framer-motion';
 
-const Navbar = () => {
+const Navbar = ({ onBookNow }) => {
     const [scrolled, setScrolled] = useState(false);
 
     useEffect(() => {
@@ -13,7 +13,7 @@ const Navbar = () => {
     }, []);
 
     return (
-        <motion.header 
+        <Motion.header 
             className="navbar"
             initial={{ y: -100 }}
             animate={{ y: 0 }}
@@ -24,16 +24,16 @@ const Navbar = () => {
                 boxShadow: scrolled ? '0 4px 30px rgba(0, 0, 0, 0.5)' : 'none'
             }}
         >
-            <div className="logo">
-                Bikers<span>.</span>
-            </div>
+            <a href="#home" className="logo">
+                RideQuest<span>.</span>
+            </a>
             <nav className="nav-links">
                 <a href="#home">Home</a>
                 <a href="#tours">Tours</a>
                 <a href="#about">About</a>
             </nav>
-            <a href="https://wa.me/919391790693" className="btn btn-primary nav-btn" target="_blank" rel="noopener noreferrer">Chat Now</a>
-        </motion.header>
+            <button onClick={onBookNow} className="btn btn-primary nav-btn">Book Now</button>
+        </Motion.header>
     );
 };
 
