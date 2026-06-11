@@ -6,8 +6,10 @@ services:
     container_name: motoescape-app
     ports:
       - "5000:5000"
+    env_file:
+      - .env
     environment:
       - PORT=5000
-      - DATABASE_URL=postgresql://neondb_owner:npg_FJ6jvZcaHw3D@ep-soft-sun-aocpn19h.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
+      - DATABASE_URL=${DATABASE_URL}
       - NODE_ENV=production
     restart: always
