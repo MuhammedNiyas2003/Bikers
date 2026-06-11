@@ -35,6 +35,40 @@ const AdminDashboard = () => {
     const [loginError, setLoginError] = useState('');
     const [isLoggingIn, setIsLoggingIn] = useState(false);
 
+    // Search & Filter & Sorting state for bookings
+    const [searchTerm, setSearchTerm] = useState('');
+    const [tourFilter, setTourFilter] = useState('all');
+    const [sortBy, setSortBy] = useState('newest'); // 'newest', 'oldest'
+
+    const calculateTotalToursValue = () => {
+        return tours.reduce((acc, tour) => {
+            if (!tour.price) return acc;
+            const numeric = parseInt(tour.price.replace(/[^\d]/g, ''), 10);
+            return acc + (isNaN(numeric) ? 0 : numeric);
+        }, 0);
+    };
+
+    const formatPrice = (val) => {
+        return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(val);
+    };
+
+    const filteredBookings = bookings
+        .filter(booking => {
+            const matchesSearch = 
+                (booking.name && booking.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                (booking.email && booking.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                (booking.tour && booking.tour.toLowerCase().includes(searchTerm.toLowerCase()));
+            
+            const matchesTour = tourFilter === 'all' || booking.tour === tourFilter;
+            
+            return matchesSearch && matchesTour;
+        })
+        .sort((a, b) => {
+            const dateA = new Date(a.createdAt);
+            const dateB = new Date(b.createdAt);
+            return sortBy === 'newest' ? dateB - dateA : dateA - dateB;
+        });
+
     const fetchBookings = () => {
         setLoadingBookings(true);
         fetch('/api/bookings')
@@ -342,12 +376,93 @@ const AdminDashboard = () => {
                         </div>
 
                         <div className="admin-body">
+                            {/* Overview Statistics Cards */}
+                            <div className="admin-stats-container">
+                                <div className="admin-stat-card">
+                                    <div className="admin-stat-icon">📊</div>
+                                    <div className="admin-stat-info">
+                                        <h4>Total Bookings</h4>
+                                        <p className="admin-stat-value">{bookings.length}</p>
+                                    </div>
+                                </div>
+                                <div className="admin-stat-card">
+                                    <div className="admin-stat-icon">🏍️</div>
+                                    <div className="admin-stat-info">
+                                        <h4>Active Tours</h4>
+                                        <p className="admin-stat-value">{tours.length}</p>
+                                    </div>
+                                </div>
+                                <div className="admin-stat-card">
+                                    <div className="admin-stat-icon">💰</div>
+                                    <div className="admin-stat-info">
+                                        <h4>Tours Total Value</h4>
+                                        <p className="admin-stat-value">{formatPrice(calculateTotalToursValue())}</p>
+                                    </div>
+                                </div>
+                                <div className="admin-stat-card">
+                                    <div className="admin-stat-icon">📈</div>
+                                    <div className="admin-stat-info">
+                                        <h4>Rider Exp Levels</h4>
+                                        <div className="admin-stat-breakdown">
+                                            <span title="Beginner" className="stat-bd-item badge-beg">Beg: {bookings.filter(b => b.skillLevel?.toLowerCase() === 'beginner').length}</span>
+                                            <span title="Intermediate" className="stat-bd-item badge-int">Int: {bookings.filter(b => b.skillLevel?.toLowerCase() === 'intermediate').length}</span>
+                                            <span title="Expert" className="stat-bd-item badge-exp">Exp: {bookings.filter(b => b.skillLevel?.toLowerCase() === 'expert').length}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                     {activeTab === 'bookings' && (
                         <div>
+                            {/* Search & Filter Controls */}
+                            <div className="admin-controls-bar">
+                                <div className="admin-search-wrapper">
+                                    <span className="admin-search-icon">🔍</span>
+                                    <input 
+                                        type="text" 
+                                        placeholder="Search rider name, email, or tour..." 
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        className="admin-search-input"
+                                    />
+                                    {searchTerm && (
+                                        <button type="button" className="admin-search-clear" onClick={() => setSearchTerm('')}>&times;</button>
+                                    )}
+                                </div>
+                                <div className="admin-filters-group">
+                                    <div className="admin-filter-control">
+                                        <label htmlFor="tour-filter">Tour:</label>
+                                        <select 
+                                            id="tour-filter"
+                                            value={tourFilter}
+                                            onChange={(e) => setTourFilter(e.target.value)}
+                                        >
+                                            <option value="all">All Rides</option>
+                                            {tours.map(t => (
+                                                <option key={t.id} value={t.title}>{t.title}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="admin-filter-control">
+                                        <label htmlFor="sort-by">Sort:</label>
+                                        <select 
+                                            id="sort-by"
+                                            value={sortBy}
+                                            onChange={(e) => setSortBy(e.target.value)}
+                                        >
+                                            <option value="newest">Newest First</option>
+                                            <option value="oldest">Oldest First</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
                             {loadingBookings ? (
                                 <div className="admin-empty">Loading bookings...</div>
-                            ) : bookings.length === 0 ? (
-                                <div className="admin-empty">No bookings have been made yet.</div>
+                            ) : filteredBookings.length === 0 ? (
+                                <div className="admin-empty">
+                                    {bookings.length === 0 ? "No bookings have been made yet." : "No bookings match the search or filter criteria."}
+                                </div>
                             ) : (
                                 <div className="admin-table-container">
                                     <table className="admin-table">
@@ -363,7 +478,7 @@ const AdminDashboard = () => {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {bookings.map(booking => (
+                                            {filteredBookings.map(booking => (
                                                 <tr key={booking.id}>
                                                     <td>{new Date(booking.createdAt).toLocaleString()}</td>
                                                     <td style={{ fontWeight: '600', color: 'white' }}>{booking.name}</td>
@@ -571,7 +686,7 @@ const AdminDashboard = () => {
                                                             tour.image === 'mountain' ? mountainImg :
                                                             tour.image === 'coastal' ? coastalImg :
                                                             tour.image === 'hero' ? heroImg :
-                                                            tour.image.startsWith('http') ? tour.image : mountainImg
+                                                            tour.image.startsWith('http') || tour.image.startsWith('data:image') ? tour.image : mountainImg
                                                         } 
                                                         alt={tour.title} 
                                                         onError={(e) => {

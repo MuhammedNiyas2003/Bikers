@@ -55,7 +55,7 @@ const Tours = ({ onBookTour }) => {
     const getTourImage = (imgName) => {
         if (!imgName) return heroImg;
         if (IMAGE_MAP[imgName]) return IMAGE_MAP[imgName];
-        if (imgName.startsWith('http://') || imgName.startsWith('https://')) return imgName;
+        if (imgName.startsWith('data:image') || imgName.startsWith('http://') || imgName.startsWith('https://')) return imgName;
         return heroImg;
     };
 

@@ -29,108 +29,68 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Detect database mode: Postgres if DATABASE_URL is present, otherwise SQLite
-const isPostgres = process.env.DATABASE_URL && (process.env.DATABASE_URL.startsWith('postgres://') || process.env.DATABASE_URL.startsWith('postgresql://'));
-
-let dbClient;
-
-if (isPostgres) {
-    console.log("Using PostgreSQL Cloud Database.");
-    const { Pool } = require('pg');
-    dbClient = new Pool({
-        connectionString: process.env.DATABASE_URL,
-        ssl: {
-            rejectUnauthorized: false // Required for Supabase/Neon secure connections
-        }
-    });
-} else {
-    console.log("Using local SQLite Database.");
-    const sqlite3 = require('sqlite3').verbose();
-    const dbPath = process.env.DATABASE_PATH || path.join(__dirname, 'motoescape.db');
-    
-    // Ensure database directory exists dynamically
-    const dbDir = path.dirname(dbPath);
-    if (!fs.existsSync(dbDir)) {
-        fs.mkdirSync(dbDir, { recursive: true });
-    }
-    
-    dbClient = new sqlite3.Database(dbPath, (err) => {
-        if (err) {
-            console.error('Error opening SQLite database', err);
-        } else {
-            console.log('Connected to local SQLite database.');
-        }
-    });
+// Setup database client: Postgres only
+if (!process.env.DATABASE_URL) {
+    console.error("CRITICAL ERROR: DATABASE_URL environment variable is not defined!");
+    process.exit(1);
 }
 
-// Database Abstraction Adapter to normalize SQLite vs PostgreSQL differences
+console.log("Using PostgreSQL Cloud Database.");
+const { Pool } = require('pg');
+const dbClient = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: {
+        rejectUnauthorized: false // Required for Supabase/Neon secure connections
+    }
+});
+
+// Database Abstraction Adapter to handle PostgreSQL queries
 const dbAdapter = {
     all: (sql, params = []) => {
         return new Promise((resolve, reject) => {
-            if (isPostgres) {
-                // Convert '?' placeholders to '$1, $2...' for Postgres compatibility
-                let pgSql = sql;
-                let index = 1;
-                while (pgSql.includes('?')) {
-                    pgSql = pgSql.replace('?', `$${index++}`);
-                }
-                dbClient.query(pgSql, params, (err, res) => {
-                    if (err) reject(err);
-                    else resolve(res.rows);
-                });
-            } else {
-                dbClient.all(sql, params, (err, rows) => {
-                    if (err) reject(err);
-                    else resolve(rows);
-                });
+            // Convert '?' placeholders to '$1, $2...' for Postgres compatibility
+            let pgSql = sql;
+            let index = 1;
+            while (pgSql.includes('?')) {
+                pgSql = pgSql.replace('?', `$${index++}`);
             }
+            dbClient.query(pgSql, params, (err, res) => {
+                if (err) reject(err);
+                else resolve(res.rows);
+            });
         });
     },
     get: (sql, params = []) => {
         return new Promise((resolve, reject) => {
-            if (isPostgres) {
-                let pgSql = sql;
-                let index = 1;
-                while (pgSql.includes('?')) {
-                    pgSql = pgSql.replace('?', `$${index++}`);
-                }
-                dbClient.query(pgSql, params, (err, res) => {
-                    if (err) reject(err);
-                    else resolve(res.rows[0]);
-                });
-            } else {
-                dbClient.get(sql, params, (err, row) => {
-                    if (err) reject(err);
-                    else resolve(row);
-                });
+            let pgSql = sql;
+            let index = 1;
+            while (pgSql.includes('?')) {
+                pgSql = pgSql.replace('?', `$${index++}`);
             }
+            dbClient.query(pgSql, params, (err, res) => {
+                if (err) reject(err);
+                else resolve(res.rows[0]);
+            });
         });
     },
     run: (sql, params = []) => {
         return new Promise((resolve, reject) => {
-            if (isPostgres) {
-                let pgSql = sql;
-                let index = 1;
-                while (pgSql.includes('?')) {
-                    pgSql = pgSql.replace('?', `$${index++}`);
-                }
-                // Append RETURNING id in INSERT queries for Postgres lastID support
-                if (pgSql.toLowerCase().includes('insert into') && !pgSql.toLowerCase().includes('returning')) {
-                    pgSql += ' RETURNING id';
-                }
-                dbClient.query(pgSql, params, (err, res) => {
-                    if (err) reject(err);
-                    else {
-                        const lastID = res.rows && res.rows[0] ? res.rows[0].id : null;
-                        resolve({ lastID, changes: res.rowCount });
-                    }
-                });
-            } else {
-                dbClient.run(sql, params, function(err) {
-                    if (err) reject(err);
-                    else resolve({ lastID: this.lastID, changes: this.changes });
-                });
+            let pgSql = sql;
+            let index = 1;
+            while (pgSql.includes('?')) {
+                pgSql = pgSql.replace('?', `$${index++}`);
             }
+            // Append RETURNING id in INSERT queries for Postgres lastID support
+            if (pgSql.toLowerCase().includes('insert into') && !pgSql.toLowerCase().includes('returning')) {
+                pgSql += ' RETURNING id';
+            }
+            dbClient.query(pgSql, params, (err, res) => {
+                if (err) reject(err);
+                else {
+                    const lastID = res.rows && res.rows[0] ? res.rows[0].id : null;
+                    resolve({ lastID, changes: res.rowCount });
+                }
+            });
         });
     }
 };
@@ -138,17 +98,8 @@ const dbAdapter = {
 // Create tables on initialization
 function createTables() {
     // Escape "desc" as it is a reserved SQL keyword in Postgres
-    const ridesTableSql = isPostgres 
-        ? `CREATE TABLE IF NOT EXISTS rides (
+    const ridesTableSql = `CREATE TABLE IF NOT EXISTS rides (
             id SERIAL PRIMARY KEY,
-            title TEXT UNIQUE,
-            image TEXT,
-            duration TEXT,
-            "desc" TEXT,
-            price TEXT
-           )`
-        : `CREATE TABLE IF NOT EXISTS rides (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT UNIQUE,
             image TEXT,
             duration TEXT,
@@ -156,8 +107,7 @@ function createTables() {
             price TEXT
            )`;
 
-    const bookingsTableSql = isPostgres
-        ? `CREATE TABLE IF NOT EXISTS bookings (
+    const bookingsTableSql = `CREATE TABLE IF NOT EXISTS bookings (
             id SERIAL PRIMARY KEY,
             tour TEXT,
             date TEXT,
@@ -166,16 +116,6 @@ function createTables() {
             skillLevel TEXT,
             bikePreference TEXT,
             createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-           )`
-        : `CREATE TABLE IF NOT EXISTS bookings (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            tour TEXT,
-            date TEXT,
-            name TEXT,
-            email TEXT,
-            skillLevel TEXT,
-            bikePreference TEXT,
-            createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
            )`;
 
     const runInit = async () => {
