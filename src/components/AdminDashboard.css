@@ -713,3 +713,355 @@
     }
 }
 
+/* Customized Ride Management Grid and Cards */
+.admin-rides-header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding-bottom: 1rem;
+}
+
+.admin-rides-header-bar h3 {
+    font-size: 1.4rem;
+    margin: 0;
+    font-family: var(--font-heading);
+}
+
+.admin-rides-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.8rem;
+    margin-top: 1rem;
+}
+
+.admin-ride-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    position: relative;
+}
+
+.admin-ride-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(255, 69, 0, 0.3);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 69, 0, 0.05);
+}
+
+.admin-ride-card-img {
+    height: 160px;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+    background: #000;
+}
+
+.admin-ride-card-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+.admin-ride-card:hover .admin-ride-card-img img {
+    transform: scale(1.05);
+}
+
+.admin-ride-card-badges {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    z-index: 10;
+}
+
+.admin-ride-card-badge-dur {
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    color: white;
+    padding: 0.3rem 0.6rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    text-transform: uppercase;
+}
+
+.admin-ride-card-content {
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.admin-ride-card-content h4 {
+    font-size: 1.2rem;
+    margin-bottom: 0.6rem;
+    font-family: var(--font-heading);
+    color: white;
+    font-weight: 700;
+}
+
+.admin-ride-card-desc {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-bottom: 1.25rem;
+    flex: 1;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.admin-ride-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding-top: 1rem;
+    margin-top: auto;
+}
+
+.admin-ride-card-price {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--accent-color);
+}
+
+.admin-ride-card-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Custom Modal Overlay for Add/Edit Form */
+.admin-form-modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1200;
+}
+
+.admin-form-modal-content {
+    background: var(--bg-surface);
+    border: 1px solid rgba(255, 69, 0, 0.2);
+    width: 90%;
+    max-width: 600px;
+    max-height: 85vh;
+    border-radius: 20px;
+    padding: 2.2rem;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.7);
+}
+
+.admin-form-modal-content h3 {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    font-family: var(--font-heading);
+    font-size: 1.6rem;
+    color: white;
+}
+
+.admin-form-modal-content h3 span {
+    color: var(--accent-color);
+}
+
+.admin-form-modal-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.admin-form-modal-content::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.admin-form-modal-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 69, 0, 0.2);
+    border-radius: 3px;
+}
+
+.admin-form-modal-content::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-color);
+}
+
+/* Custom Alert / Confirmation Dialog */
+.custom-dialog-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1300;
+}
+
+.custom-dialog-content {
+    background: #121212;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8), 0 0 30px rgba(255, 69, 0, 0.05);
+    border-radius: 16px;
+    width: 90%;
+    max-width: 400px;
+    padding: 2rem;
+    text-align: center;
+    position: relative;
+}
+
+.custom-dialog-content.dialog-confirm {
+    border-color: rgba(255, 140, 0, 0.3);
+}
+
+.custom-dialog-content.dialog-error {
+    border-color: rgba(255, 68, 68, 0.3);
+}
+
+.custom-dialog-content.dialog-success {
+    border-color: rgba(37, 211, 102, 0.3);
+}
+
+.custom-dialog-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+}
+
+.custom-dialog-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 0.6rem;
+    color: white;
+    font-family: var(--font-heading);
+}
+
+.custom-dialog-message {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    margin-bottom: 1.5rem;
+}
+
+.custom-dialog-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.custom-dialog-btn {
+    padding: 0.6rem 1.5rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    border-radius: 8px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: var(--transition);
+}
+
+.custom-dialog-btn-primary {
+    background: var(--accent-color);
+    color: white;
+    border: 1px solid var(--accent-color);
+}
+
+.custom-dialog-btn-primary:hover {
+    background: #ff5714;
+    box-shadow: 0 0 10px rgba(255, 69, 0, 0.3);
+}
+
+.custom-dialog-btn-secondary {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.custom-dialog-btn-secondary:hover {
+    color: white;
+    border-color: white;
+}
+
+/* Spinner & Button Loading Styles */
+.spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: white;
+    animation: spin 0.8s linear infinite;
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.btn:disabled,
+.admin-btn-action:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* Form Validation Indicators */
+.form-validation-errors-container {
+    background: rgba(255, 68, 68, 0.08);
+    border: 1px solid rgba(255, 68, 68, 0.25);
+    color: #ff5555;
+    padding: 0.8rem 1rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    margin-bottom: 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.form-validation-errors-header {
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.form-validation-errors-list {
+    margin: 0;
+    padding-left: 1.2rem;
+}
+
+.admin-input-group.has-error input,
+.admin-input-group.has-error textarea,
+.admin-input-group.has-error select {
+    border-color: rgba(255, 68, 68, 0.5) !important;
+}
+
+.admin-input-group.has-error label {
+    color: #ff5555 !important;
+}
+
+.field-error-text {
+    color: #ff5555;
+    font-size: 0.75rem;
+    margin-top: 0.3rem;
+    font-weight: 500;
+}
+
+

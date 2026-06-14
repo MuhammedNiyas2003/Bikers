@@ -40,6 +40,94 @@ const AdminDashboard = () => {
     const [tourFilter, setTourFilter] = useState('all');
     const [sortBy, setSortBy] = useState('newest'); // 'newest', 'oldest'
 
+    // Custom dialog configuration
+    const [dialogConfig, setDialogConfig] = useState({
+        isOpen: false,
+        type: 'alert', // 'alert' or 'confirm'
+        variant: 'error', // 'error', 'success', 'confirm'
+        title: '',
+        message: '',
+        onConfirm: null,
+        onCancel: null
+    });
+
+    // Form modal overlay open state
+    const [isFormOpen, setIsFormOpen] = useState(false);
+
+    // Double-submit prevention / loading states
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [deletingId, setDeletingId] = useState(null);
+
+    // Inline field validation errors state
+    const [validationErrors, setValidationErrors] = useState({});
+
+    // Dialog trigger helpers
+    const showCustomAlert = (title, message, variant = 'error') => {
+        setDialogConfig({
+            isOpen: true,
+            type: 'alert',
+            variant,
+            title,
+            message,
+            onConfirm: () => setDialogConfig(prev => ({ ...prev, isOpen: false }))
+        });
+    };
+
+    const showCustomConfirm = (title, message, onConfirm) => {
+        setDialogConfig({
+            isOpen: true,
+            type: 'confirm',
+            variant: 'confirm',
+            title,
+            message,
+            onConfirm: () => {
+                setDialogConfig(prev => ({ ...prev, isOpen: false }));
+                onConfirm();
+            },
+            onCancel: () => setDialogConfig(prev => ({ ...prev, isOpen: false }))
+        });
+    };
+
+    // Client-side form validation check
+    const validateForm = () => {
+        const errors = {};
+        const titleTrimmed = formData.title ? formData.title.trim() : '';
+        const durationTrimmed = formData.duration ? formData.duration.trim() : '';
+        const priceTrimmed = formData.price ? formData.price.trim() : '';
+        const descTrimmed = formData.desc ? formData.desc.trim() : '';
+
+        if (!titleTrimmed) {
+            errors.title = "Tour Name is required.";
+        } else if (titleTrimmed.length < 3) {
+            errors.title = "Tour Name must be at least 3 characters long.";
+        }
+
+        if (!durationTrimmed) {
+            errors.duration = "Duration is required.";
+        } else if (durationTrimmed.length < 2) {
+            errors.duration = "Please enter a valid duration (e.g., '5 Days').";
+        }
+
+        if (!priceTrimmed) {
+            errors.price = "Price is required.";
+        } else if (!/\d/.test(priceTrimmed)) {
+            errors.price = "Price must contain numbers (e.g. ₹99,000 or 99000).";
+        }
+
+        if (!descTrimmed) {
+            errors.desc = "Description is required.";
+        } else if (descTrimmed.length < 10) {
+            errors.desc = "Description must be at least 10 characters long.";
+        }
+
+        if (!formData.image) {
+            errors.image = "An image selection is required.";
+        }
+
+        setValidationErrors(errors);
+        return Object.keys(errors).length === 0;
+    };
+
     const calculateTotalToursValue = () => {
         return tours.reduce((acc, tour) => {
             if (!tour.price) return acc;
@@ -181,10 +269,22 @@ const AdminDashboard = () => {
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+        // Clean error inline
+        if (validationErrors[name]) {
+            setValidationErrors(prev => ({ ...prev, [name]: '' }));
+        }
     };
 
     const handleFormSubmit = (e) => {
         e.preventDefault();
+
+        // Validate form fields first
+        if (!validateForm()) return;
+
+        // Double submit prevention
+        if (isSubmitting) return;
+        setIsSubmitting(true);
+
         const url = editingId ? `/api/rides/${editingId}` : '/api/rides';
         const method = editingId ? 'PUT' : 'POST';
 
@@ -196,13 +296,20 @@ const AdminDashboard = () => {
             body: JSON.stringify(formData)
         })
         .then(res => {
-            if (!res.ok) throw new Error("Failed to save ride");
+            if (!res.ok) throw new Error("Failed to save ride. Verify the ride name is unique.");
             return res.json();
         })
         .then(() => {
             fetchTours();
             // Trigger home page update
             window.dispatchEvent(new Event('ridesUpdated'));
+            
+            showCustomAlert(
+                editingId ? "Tour Updated" : "Tour Published",
+                `Biking tour "${formData.title}" was saved successfully.`,
+                'success'
+            );
+
             // Reset form
             setFormData({
                 title: '',
@@ -213,11 +320,29 @@ const AdminDashboard = () => {
             });
             setEditingId(null);
             setImageType('preset');
+            setValidationErrors({});
+            setIsFormOpen(false);
+            setIsSubmitting(false);
         })
         .catch(err => {
             console.error("Error saving ride:", err);
-            alert("Failed to save ride: " + err.message);
+            setIsSubmitting(false);
+            showCustomAlert("Failed to Save Tour", err.message, 'error');
         });
+    };
+
+    const handleAddNewClick = () => {
+        setEditingId(null);
+        setImageType('preset');
+        setFormData({
+            title: '',
+            image: 'mountain',
+            duration: '',
+            desc: '',
+            price: ''
+        });
+        setValidationErrors({});
+        setIsFormOpen(true);
     };
 
     const handleEditClick = (tour) => {
@@ -238,37 +363,53 @@ const AdminDashboard = () => {
             desc: tour.desc,
             price: tour.price
         });
+        setValidationErrors({});
+        setIsFormOpen(true);
     };
 
     const handleDeleteClick = (id) => {
-        if (!confirm("Are you sure you want to delete this ride?")) return;
+        if (deletingId) return;
 
-        fetch(`/api/rides/${id}`, {
-            method: 'DELETE'
-        })
-        .then(res => {
-            if (!res.ok) throw new Error("Failed to delete ride");
-            return res.json();
-        })
-        .then(() => {
-            fetchTours();
-            // Trigger home page update
-            window.dispatchEvent(new Event('ridesUpdated'));
-            if (editingId === id) {
-                setEditingId(null);
-                setFormData({
-                    title: '',
-                    image: 'mountain',
-                    duration: '',
-                    desc: '',
-                    price: ''
+        showCustomConfirm(
+            "Delete Tour?",
+            "Are you sure you want to delete this ride? This action cannot be undone.",
+            () => {
+                setDeletingId(id);
+                fetch(`/api/rides/${id}`, {
+                    method: 'DELETE'
+                })
+                .then(res => {
+                    if (!res.ok) throw new Error("Failed to delete ride");
+                    return res.json();
+                })
+                .then(() => {
+                    fetchTours();
+                    // Trigger home page update
+                    window.dispatchEvent(new Event('ridesUpdated'));
+                    
+                    showCustomAlert("Tour Deleted", "The tour has been successfully removed.", 'success');
+                    
+                    if (editingId === id) {
+                        setEditingId(null);
+                        setFormData({
+                            title: '',
+                            image: 'mountain',
+                            duration: '',
+                            desc: '',
+                            price: ''
+                        });
+                        setValidationErrors({});
+                        setIsFormOpen(false);
+                    }
+                    setDeletingId(null);
+                })
+                .catch(err => {
+                    console.error("Error deleting ride:", err);
+                    setDeletingId(null);
+                    showCustomAlert("Delete Failed", err.message, 'error');
                 });
             }
-        })
-        .catch(err => {
-            console.error("Error deleting ride:", err);
-            alert("Failed to delete ride: " + err.message);
-        });
+        );
     };
 
     const handleCancelEdit = () => {
@@ -281,6 +422,279 @@ const AdminDashboard = () => {
             desc: '',
             price: ''
         });
+        setValidationErrors({});
+        setIsFormOpen(false);
+    };
+
+    // Sub-render: Custom Dialog Modal Overlay (Success, Error, Confirmation)
+    const renderCustomModalDialog = () => {
+        if (!dialogConfig.isOpen) return null;
+
+        const getIcon = () => {
+            switch(dialogConfig.variant) {
+                case 'success': return '✅';
+                case 'confirm': return '❓';
+                case 'error':
+                default: return '⚠️';
+            }
+        };
+
+        return (
+            <div className="custom-dialog-backdrop" onClick={(e) => e.stopPropagation()}>
+                <Motion.div 
+                    className={`custom-dialog-content dialog-${dialogConfig.variant}`}
+                    initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    transition={{ type: 'spring', duration: 0.4 }}
+                >
+                    <div className="custom-dialog-icon">{getIcon()}</div>
+                    <div className="custom-dialog-title">{dialogConfig.title}</div>
+                    <div className="custom-dialog-message">{dialogConfig.message}</div>
+                    <div className="custom-dialog-actions">
+                        {dialogConfig.type === 'confirm' && (
+                            <button 
+                                className="custom-dialog-btn custom-dialog-btn-secondary"
+                                onClick={dialogConfig.onCancel}
+                            >
+                                Cancel
+                            </button>
+                        )}
+                        <button 
+                            className="custom-dialog-btn custom-dialog-btn-primary"
+                            onClick={dialogConfig.onConfirm}
+                        >
+                            {dialogConfig.type === 'confirm' ? 'Delete' : 'OK'}
+                        </button>
+                    </div>
+                </Motion.div>
+            </div>
+        );
+    };
+
+    // Sub-render: Create/Edit Tour Form Modal Overlay
+    const renderFormModal = () => {
+        if (!isFormOpen) return null;
+
+        return (
+            <div className="admin-form-modal-backdrop" onClick={(e) => e.stopPropagation()}>
+                <Motion.div 
+                    className="admin-form-modal-content"
+                    initial={{ opacity: 0, scale: 0.9, y: 30 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    transition={{ type: 'spring', duration: 0.4 }}
+                >
+                    <button 
+                        className="admin-close-btn" 
+                        onClick={handleCancelEdit} 
+                        aria-label="Close Form"
+                        disabled={isSubmitting}
+                    >
+                        &times;
+                    </button>
+                    
+                    <h3>
+                        {editingId ? 'Edit ' : 'Create '}
+                        <span>Biking Tour</span>
+                    </h3>
+
+                    {Object.keys(validationErrors).length > 0 && (
+                        <div className="form-validation-errors-container">
+                            <div className="form-validation-errors-header">
+                                <span>⚠️ Please correct the following errors:</span>
+                            </div>
+                            <ul className="form-validation-errors-list">
+                                {Object.values(validationErrors).map((err, idx) => (
+                                    <li key={idx}>{err}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+
+                    <form onSubmit={handleFormSubmit}>
+                        <div className={`admin-input-group ${validationErrors.title ? 'has-error' : ''}`}>
+                            <label htmlFor="admin-tour-title">Tour Name</label>
+                            <input 
+                                id="admin-tour-title"
+                                type="text" 
+                                name="title" 
+                                placeholder="e.g. Desert Oasis Ride" 
+                                value={formData.title}
+                                onChange={handleInputChange}
+                                disabled={isSubmitting}
+                            />
+                            {validationErrors.title && <div className="field-error-text">{validationErrors.title}</div>}
+                        </div>
+
+                        <div className={`admin-input-group ${validationErrors.duration ? 'has-error' : ''}`}>
+                            <label htmlFor="admin-tour-duration">Duration</label>
+                            <input 
+                                id="admin-tour-duration"
+                                type="text" 
+                                name="duration" 
+                                placeholder="e.g. 5 Days" 
+                                value={formData.duration}
+                                onChange={handleInputChange}
+                                disabled={isSubmitting}
+                            />
+                            {validationErrors.duration && <div className="field-error-text">{validationErrors.duration}</div>}
+                        </div>
+
+                        <div className={`admin-input-group ${validationErrors.price ? 'has-error' : ''}`}>
+                            <label htmlFor="admin-tour-price">Price</label>
+                            <input 
+                                id="admin-tour-price"
+                                type="text" 
+                                name="price" 
+                                placeholder="e.g. ₹99,000" 
+                                value={formData.price}
+                                onChange={handleInputChange}
+                                disabled={isSubmitting}
+                            />
+                            {validationErrors.price && <div className="field-error-text">{validationErrors.price}</div>}
+                        </div>
+
+                        <div className={`admin-input-group ${validationErrors.image ? 'has-error' : ''}`}>
+                            <label>Ride Image</label>
+                            <div className="image-selector-tabs">
+                                <button 
+                                    type="button"
+                                    className={`image-type-btn ${imageType === 'preset' ? 'active' : ''}`}
+                                    onClick={() => {
+                                        setImageType('preset');
+                                        setFormData(prev => ({ ...prev, image: 'mountain' }));
+                                    }}
+                                    disabled={isSubmitting}
+                                >
+                                    Presets
+                                </button>
+                                <button 
+                                    type="button"
+                                    className={`image-type-btn ${imageType === 'custom' ? 'active' : ''}`}
+                                    onClick={() => {
+                                        setImageType('custom');
+                                        setFormData(prev => ({ ...prev, image: '' }));
+                                    }}
+                                    disabled={isSubmitting}
+                                >
+                                    Web URL
+                                </button>
+                                <button 
+                                    type="button"
+                                    className={`image-type-btn ${imageType === 'upload' ? 'active' : ''}`}
+                                    onClick={() => {
+                                        setImageType('upload');
+                                        setFormData(prev => ({ ...prev, image: '' }));
+                                    }}
+                                    disabled={isSubmitting}
+                                >
+                                    Upload
+                                </button>
+                            </div>
+
+                            {imageType === 'preset' ? (
+                                <div className="preset-thumbnails">
+                                    {presets.map(p => (
+                                        <div 
+                                            key={p.key}
+                                            className={`preset-thumb-card ${formData.image === p.key ? 'selected' : ''}`}
+                                            onClick={() => !isSubmitting && setFormData(prev => ({ ...prev, image: p.key }))}
+                                            title={p.label}
+                                        >
+                                            <img src={p.img} alt={p.label} />
+                                            {formData.image === p.key && <div className="preset-check">✓</div>}
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : imageType === 'custom' ? (
+                                <input 
+                                    type="url" 
+                                    name="image" 
+                                    placeholder="Paste custom image URL (e.g. https://...)" 
+                                    value={formData.image && !['mountain', 'coastal', 'hero'].includes(formData.image) && !formData.image.startsWith('data:image') ? formData.image : ''}
+                                    onChange={handleInputChange}
+                                    disabled={isSubmitting}
+                                />
+                            ) : (
+                                <div className="upload-container">
+                                    <label className="custom-file-upload">
+                                        <input 
+                                            type="file" 
+                                            accept="image/*" 
+                                            onChange={handleFileChange}
+                                            disabled={isSubmitting}
+                                        />
+                                        {formData.image && formData.image.startsWith('data:image') ? '✓ Image Loaded (Click to Change)' : 'Choose Image File'}
+                                    </label>
+                                </div>
+                            )}
+
+                            {validationErrors.image && <div className="field-error-text">{validationErrors.image}</div>}
+
+                            <div className="image-preview-container">
+                                {formData.image ? (
+                                    <img 
+                                        src={
+                                            formData.image === 'mountain' ? mountainImg :
+                                            formData.image === 'coastal' ? coastalImg :
+                                            formData.image === 'hero' ? heroImg :
+                                            formData.image
+                                        } 
+                                        alt="Ride Preview" 
+                                        onError={(e) => {
+                                            e.target.style.display = 'none';
+                                        }}
+                                    />
+                                ) : (
+                                    <div className="image-preview-placeholder">
+                                        Image Preview will appear here
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className={`admin-input-group ${validationErrors.desc ? 'has-error' : ''}`}>
+                            <label htmlFor="admin-tour-desc">Description</label>
+                            <textarea 
+                                id="admin-tour-desc"
+                                name="desc" 
+                                placeholder="Describe the roads, sights, experience and pace..." 
+                                value={formData.desc}
+                                onChange={handleInputChange}
+                                disabled={isSubmitting}
+                            />
+                            {validationErrors.desc && <div className="field-error-text">{validationErrors.desc}</div>}
+                        </div>
+
+                        <div className="admin-form-actions">
+                            <button 
+                                type="button" 
+                                className="btn btn-secondary btn-sm"
+                                onClick={handleCancelEdit}
+                                disabled={isSubmitting}
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                type="submit" 
+                                className="btn btn-primary btn-sm"
+                                disabled={isSubmitting}
+                            >
+                                {isSubmitting ? (
+                                    <>
+                                        <span className="spinner"></span>
+                                        Saving...
+                                    </>
+                                ) : editingId ? (
+                                    'Save Changes'
+                                ) : (
+                                    'Publish Ride'
+                                )}
+                            </button>
+                        </div>
+                    </form>
+                </Motion.div>
+            </div>
+        );
     };
 
     const backdropVariants = {
@@ -505,182 +919,29 @@ const AdminDashboard = () => {
                     )}
 
                     {activeTab === 'rides' && (
-                        <div className="admin-rides-layout">
-                            {/* Left Column: Form */}
-                            <div className="admin-form-card">
-                                <h3>{editingId ? 'Edit Biking Tour' : 'Add New Biking Tour'}</h3>
-                                <form onSubmit={handleFormSubmit}>
-                                    <div className="admin-input-group">
-                                        <label htmlFor="admin-tour-title">Tour Name</label>
-                                        <input 
-                                            id="admin-tour-title"
-                                            type="text" 
-                                            name="title" 
-                                            placeholder="e.g. Desert Oasis Ride" 
-                                            value={formData.title}
-                                            onChange={handleInputChange}
-                                            required
-                                        />
-                                    </div>
-                                    <div className="admin-input-group">
-                                        <label htmlFor="admin-tour-duration">Duration</label>
-                                        <input 
-                                            id="admin-tour-duration"
-                                            type="text" 
-                                            name="duration" 
-                                            placeholder="e.g. 5 Days" 
-                                            value={formData.duration}
-                                            onChange={handleInputChange}
-                                            required
-                                        />
-                                    </div>
-                                    <div className="admin-input-group">
-                                        <label htmlFor="admin-tour-price">Price</label>
-                                        <input 
-                                            id="admin-tour-price"
-                                            type="text" 
-                                            name="price" 
-                                            placeholder="e.g. ₹99,000" 
-                                            value={formData.price}
-                                            onChange={handleInputChange}
-                                            required
-                                        />
-                                    </div>
-                                    <div className="admin-input-group">
-                                        <label>Ride Image</label>
-                                        <div className="image-selector-tabs">
-                                            <button 
-                                                type="button"
-                                                className={`image-type-btn ${imageType === 'preset' ? 'active' : ''}`}
-                                                onClick={() => {
-                                                    setImageType('preset');
-                                                    setFormData(prev => ({ ...prev, image: 'mountain' }));
-                                                }}
-                                            >
-                                                Presets
-                                            </button>
-                                            <button 
-                                                type="button"
-                                                className={`image-type-btn ${imageType === 'custom' ? 'active' : ''}`}
-                                                onClick={() => {
-                                                    setImageType('custom');
-                                                    setFormData(prev => ({ ...prev, image: '' }));
-                                                }}
-                                            >
-                                                Web URL
-                                            </button>
-                                            <button 
-                                                type="button"
-                                                className={`image-type-btn ${imageType === 'upload' ? 'active' : ''}`}
-                                                onClick={() => {
-                                                    setImageType('upload');
-                                                    setFormData(prev => ({ ...prev, image: '' }));
-                                                }}
-                                            >
-                                                Upload
-                                            </button>
-                                        </div>
-
-                                        {imageType === 'preset' ? (
-                                            <div className="preset-thumbnails">
-                                                {presets.map(p => (
-                                                    <div 
-                                                        key={p.key}
-                                                        className={`preset-thumb-card ${formData.image === p.key ? 'selected' : ''}`}
-                                                        onClick={() => setFormData(prev => ({ ...prev, image: p.key }))}
-                                                        title={p.label}
-                                                    >
-                                                        <img src={p.img} alt={p.label} />
-                                                        {formData.image === p.key && <div className="preset-check">✓</div>}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        ) : imageType === 'custom' ? (
-                                            <input 
-                                                type="url" 
-                                                name="image" 
-                                                placeholder="Paste custom image URL (e.g. https://...)" 
-                                                value={formData.image && !['mountain', 'coastal', 'hero'].includes(formData.image) && !formData.image.startsWith('data:image') ? formData.image : ''}
-                                                onChange={handleInputChange}
-                                                required={imageType === 'custom'}
-                                            />
-                                        ) : (
-                                            <div className="upload-container">
-                                                <label className="custom-file-upload">
-                                                    <input 
-                                                        type="file" 
-                                                        accept="image/*" 
-                                                        onChange={handleFileChange}
-                                                    />
-                                                    {formData.image && formData.image.startsWith('data:image') ? '✓ Image Loaded (Click to Change)' : 'Choose Image File'}
-                                                </label>
-                                            </div>
-                                        )}
-
-                                        <div className="image-preview-container">
-                                            {formData.image ? (
-                                                <img 
-                                                    src={
-                                                        formData.image === 'mountain' ? mountainImg :
-                                                        formData.image === 'coastal' ? coastalImg :
-                                                        formData.image === 'hero' ? heroImg :
-                                                        formData.image
-                                                    } 
-                                                    alt="Ride Preview" 
-                                                    onError={(e) => {
-                                                        e.target.style.display = 'none';
-                                                    }}
-                                                />
-                                            ) : (
-                                                <div className="image-preview-placeholder">
-                                                    Image Preview will appear here
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className="admin-input-group">
-                                        <label htmlFor="admin-tour-desc">Description</label>
-                                        <textarea 
-                                            id="admin-tour-desc"
-                                            name="desc" 
-                                            placeholder="Describe the roads, sights, experience and pace..." 
-                                            value={formData.desc}
-                                            onChange={handleInputChange}
-                                            required
-                                        />
-                                    </div>
-                                    <div className="admin-form-actions">
-                                        {editingId && (
-                                            <button 
-                                                type="button" 
-                                                className="btn btn-secondary btn-sm"
-                                                onClick={handleCancelEdit}
-                                            >
-                                                Cancel
-                                            </button>
-                                        )}
-                                        <button 
-                                            type="submit" 
-                                            className="btn btn-primary btn-sm"
-                                        >
-                                            {editingId ? 'Save Changes' : 'Publish Ride'}
-                                        </button>
-                                    </div>
-                                </form>
+                        <div>
+                            <div className="admin-rides-header-bar">
+                                <h3>Active Rides ({tours.length})</h3>
+                                <button 
+                                    className="btn btn-primary btn-sm"
+                                    onClick={handleAddNewClick}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                                >
+                                    🏍️ + Create New Tour
+                                </button>
                             </div>
 
-                            {/* Right Column: List */}
-                            <div>
-                                <h3 style={{ fontSize: '1.3rem', marginBottom: '1.5rem' }}>Active Rides</h3>
-                                {loadingTours ? (
-                                    <div className="admin-empty">Loading active rides...</div>
-                                ) : tours.length === 0 ? (
-                                    <div className="admin-empty">No active rides. Use the form to create one!</div>
-                                ) : (
-                                    <div className="admin-rides-list">
-                                        {tours.map(tour => (
-                                            <div className="admin-ride-item" key={tour.id}>
-                                                <div className="admin-ride-thumb">
+                            {loadingTours ? (
+                                <div className="admin-empty">Loading active rides...</div>
+                            ) : tours.length === 0 ? (
+                                <div className="admin-empty">No active rides. Click "+ Create New Tour" to create one!</div>
+                            ) : (
+                                <div className="admin-rides-grid">
+                                    {tours.map(tour => {
+                                        const isThisDeleting = deletingId === tour.id;
+                                        return (
+                                            <div className="admin-ride-card" key={tour.id}>
+                                                <div className="admin-ride-card-img">
                                                     <img 
                                                         src={
                                                             tour.image === 'mountain' ? mountainImg :
@@ -691,44 +952,60 @@ const AdminDashboard = () => {
                                                         alt={tour.title} 
                                                         onError={(e) => {
                                                             e.target.onerror = null;
-                                                            e.target.src = 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?q=80&w=200&auto=format&fit=crop';
+                                                            e.target.src = 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?q=80&w=300&auto=format&fit=crop';
                                                         }}
                                                     />
-                                                </div>
-                                                <div className="admin-ride-info">
-                                                    <h4>{tour.title}</h4>
-                                                    <div className="admin-ride-meta">
-                                                        <span><strong>Duration:</strong> {tour.duration}</span>
-                                                        <span><strong>Price:</strong> {tour.price}</span>
+                                                    <div className="admin-ride-card-badges">
+                                                        <span className="admin-ride-card-badge-dur">{tour.duration}</span>
                                                     </div>
                                                 </div>
-                                                <div className="admin-ride-actions">
-                                                    <button 
-                                                        className="admin-btn-action admin-btn-edit"
-                                                        onClick={() => handleEditClick(tour)}
-                                                    >
-                                                        Edit
-                                                    </button>
-                                                    <button 
-                                                        className="admin-btn-action admin-btn-delete"
-                                                        onClick={() => handleDeleteClick(tour.id)}
-                                                    >
-                                                        Delete
-                                                    </button>
+                                                <div className="admin-ride-card-content">
+                                                    <h4>{tour.title}</h4>
+                                                    <p className="admin-ride-card-desc">{tour.desc}</p>
+                                                    <div className="admin-ride-card-footer">
+                                                        <span className="admin-ride-card-price">{tour.price}</span>
+                                                        <div className="admin-ride-card-actions">
+                                                            <button 
+                                                                className="admin-btn-action admin-btn-edit"
+                                                                onClick={() => handleEditClick(tour)}
+                                                                disabled={deletingId !== null}
+                                                            >
+                                                                Edit
+                                                            </button>
+                                                            <button 
+                                                                className="admin-btn-action admin-btn-delete"
+                                                                onClick={() => handleDeleteClick(tour.id)}
+                                                                disabled={deletingId !== null}
+                                                            >
+                                                                {isThisDeleting ? (
+                                                                    <>
+                                                                        <span className="spinner" style={{ marginRight: 0 }}></span>
+                                                                    </>
+                                                                ) : (
+                                                                    'Delete'
+                                                                )}
+                                                            </button>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
                     )}
                         </div>
                     </>
                 )}
             </Motion.div>
+
+            {/* Custom overlays / popup wrappers */}
+            {renderFormModal()}
+            {renderCustomModalDialog()}
         </Motion.div>
     );
 };
 
 export default AdminDashboard;
+
