@@ -104,7 +104,9 @@ function createTables() {
             image TEXT,
             duration TEXT,
             "desc" TEXT,
-            price TEXT
+            price TEXT,
+            rideDate TEXT,
+            location TEXT
            )`;
 
     const bookingsTableSql = `CREATE TABLE IF NOT EXISTS bookings (
@@ -115,6 +117,11 @@ function createTables() {
             email TEXT,
             skillLevel TEXT,
             bikePreference TEXT,
+            rideType TEXT,
+            bikeCc TEXT,
+            mobileNumber TEXT,
+            participants INTEGER,
+            specialNotes TEXT,
             createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
            )`;
 
@@ -122,6 +129,28 @@ function createTables() {
         try {
             await dbAdapter.run(ridesTableSql);
             await dbAdapter.run(bookingsTableSql);
+
+            // Add columns to existing bookings table if they do not exist
+            try {
+                await dbAdapter.run("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS rideType TEXT");
+                await dbAdapter.run("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS bikeCc TEXT");
+                await dbAdapter.run("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS mobileNumber TEXT");
+                await dbAdapter.run("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS participants INTEGER");
+                await dbAdapter.run("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS specialNotes TEXT");
+                console.log("Database schema migrated for bookings.");
+            } catch (schemaErr) {
+                console.warn("Schema migration warning for bookings:", schemaErr.message);
+            }
+
+            // Add columns to existing rides table if they do not exist
+            try {
+                await dbAdapter.run("ALTER TABLE rides ADD COLUMN IF NOT EXISTS rideDate TEXT");
+                await dbAdapter.run("ALTER TABLE rides ADD COLUMN IF NOT EXISTS location TEXT");
+                console.log("Database schema migrated for rides.");
+            } catch (schemaErr) {
+                console.warn("Schema migration warning for rides:", schemaErr.message);
+            }
+
             console.log("Database tables initialized.");
         } catch (err) {
             console.error("Error creating database:", err);
@@ -136,10 +165,10 @@ createTables();
 // API Route for Admin Login
 app.post('/api/admin/login', (req, res) => {
     const { username, password } = req.body;
-    
+
     const adminUser = process.env.ADMIN_USERNAME || 'admin';
     const adminPass = process.env.ADMIN_PASSWORD || 'motoescape123';
-    
+
     if (username === adminUser && password === adminPass) {
         res.json({ success: true, token: 'motoescape_admin_session_token' });
     } else {
@@ -151,33 +180,52 @@ app.post('/api/admin/login', (req, res) => {
 app.get('/api/rides', async (req, res) => {
     try {
         const rows = await dbAdapter.all("SELECT * FROM rides");
-        res.json(rows);
+        const normalized = rows.map(row => {
+            const getVal = (exactKey, fallbackKeys) => {
+                if (row[exactKey] !== undefined) return row[exactKey];
+                for (const fk of fallbackKeys) {
+                    if (row[fk] !== undefined) return row[fk];
+                }
+                return undefined;
+            };
+            return {
+                id: row.id,
+                title: row.title,
+                image: row.image,
+                duration: row.duration,
+                desc: row.desc || row.desc,
+                price: row.price,
+                rideDate: getVal('rideDate', ['ridedate']),
+                location: row.location
+            };
+        });
+        res.json(normalized);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
 app.post('/api/rides', async (req, res) => {
-    const { title, image, duration, desc, price } = req.body;
+    const { title, image, duration, desc, price, rideDate, location } = req.body;
     try {
         const result = await dbAdapter.run(
-            "INSERT INTO rides (title, image, duration, \"desc\", price) VALUES (?, ?, ?, ?, ?)",
-            [title, image, duration, desc, price]
+            "INSERT INTO rides (title, image, duration, \"desc\", price, rideDate, location) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            [title, image, duration, desc, price, rideDate || '', location || '']
         );
-        res.json({ id: result.lastID, title, image, duration, desc, price });
+        res.json({ id: result.lastID, title, image, duration, desc, price, rideDate, location });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
 app.put('/api/rides/:id', async (req, res) => {
-    const { title, image, duration, desc, price } = req.body;
+    const { title, image, duration, desc, price, rideDate, location } = req.body;
     try {
         await dbAdapter.run(
-            "UPDATE rides SET title = ?, image = ?, duration = ?, \"desc\" = ?, price = ? WHERE id = ?",
-            [title, image, duration, desc, price, req.params.id]
+            "UPDATE rides SET title = ?, image = ?, duration = ?, \"desc\" = ?, price = ?, rideDate = ?, location = ? WHERE id = ?",
+            [title, image, duration, desc, price, rideDate, location, req.params.id]
         );
-        res.json({ message: "Ride updated successfully", id: req.params.id, title, image, duration, desc, price });
+        res.json({ message: "Ride updated successfully", id: req.params.id, title, image, duration, desc, price, rideDate, location });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -196,20 +244,69 @@ app.delete('/api/rides/:id', async (req, res) => {
 app.get('/api/bookings', async (req, res) => {
     try {
         const rows = await dbAdapter.all("SELECT * FROM bookings ORDER BY createdAt DESC");
-        res.json(rows);
+        const normalized = rows.map(row => {
+            const getVal = (exactKey, fallbackKeys) => {
+                if (row[exactKey] !== undefined) return row[exactKey];
+                for (const fk of fallbackKeys) {
+                    if (row[fk] !== undefined) return row[fk];
+                }
+                return undefined;
+            };
+            return {
+                id: row.id,
+                tour: row.tour,
+                date: row.date,
+                name: row.name,
+                email: row.email,
+                mobileNumber: getVal('mobileNumber', ['mobilenumber']),
+                participants: parseInt(getVal('participants', ['participants'])) || 1,
+                specialNotes: getVal('specialNotes', ['specialnotes']),
+                skillLevel: getVal('skillLevel', ['skilllevel']),
+                bikePreference: getVal('bikePreference', ['bikepreference']),
+                rideType: getVal('rideType', ['ridetype']),
+                bikeCc: getVal('bikeCc', ['bikecc']),
+                createdAt: row.createdAt || row.createdat
+            };
+        });
+        res.json(normalized);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
 
 app.post('/api/bookings', async (req, res) => {
-    const { tour, date, name, email, skillLevel, bikePreference } = req.body;
+    const { tour, date, name, email, skillLevel, bikePreference, rideType, bikeCc, mobileNumber, participants, specialNotes } = req.body;
     try {
         const result = await dbAdapter.run(
-            "INSERT INTO bookings (tour, date, name, email, skillLevel, bikePreference) VALUES (?, ?, ?, ?, ?, ?)",
-            [tour, date, name, email, skillLevel, bikePreference]
+            "INSERT INTO bookings (tour, date, name, email, skillLevel, bikePreference, rideType, bikeCc, mobileNumber, participants, specialNotes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            [
+                tour,
+                date,
+                name,
+                email,
+                skillLevel,
+                bikePreference,
+                rideType || 'Single',
+                bikeCc || '300 to 500',
+                mobileNumber || '',
+                participants || 1,
+                specialNotes || ''
+            ]
         );
-        res.json({ id: result.lastID, tour, date, name, email, skillLevel, bikePreference });
+        res.json({
+            id: result.lastID,
+            tour,
+            date,
+            name,
+            email,
+            skillLevel,
+            bikePreference,
+            rideType,
+            bikeCc,
+            mobileNumber,
+            participants,
+            specialNotes
+        });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

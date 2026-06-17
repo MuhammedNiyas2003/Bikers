@@ -25,7 +25,9 @@ const AdminDashboard = () => {
         image: 'mountain',
         duration: '',
         desc: '',
-        price: ''
+        price: '',
+        rideDate: '',
+        location: ''
     });
     const [editingId, setEditingId] = useState(null);
 
@@ -95,6 +97,8 @@ const AdminDashboard = () => {
         const durationTrimmed = formData.duration ? formData.duration.trim() : '';
         const priceTrimmed = formData.price ? formData.price.trim() : '';
         const descTrimmed = formData.desc ? formData.desc.trim() : '';
+        const rideDateTrimmed = formData.rideDate ? formData.rideDate.trim() : '';
+        const locationTrimmed = formData.location ? formData.location.trim() : '';
 
         if (!titleTrimmed) {
             errors.title = "Tour Name is required.";
@@ -122,6 +126,14 @@ const AdminDashboard = () => {
 
         if (!formData.image) {
             errors.image = "An image selection is required.";
+        }
+
+        if (!rideDateTrimmed) {
+            errors.rideDate = "Fixed Ride Date is required.";
+        }
+
+        if (!locationTrimmed) {
+            errors.location = "Location is required.";
         }
 
         setValidationErrors(errors);
@@ -316,7 +328,9 @@ const AdminDashboard = () => {
                 image: 'mountain',
                 duration: '',
                 desc: '',
-                price: ''
+                price: '',
+                rideDate: '',
+                location: ''
             });
             setEditingId(null);
             setImageType('preset');
@@ -339,7 +353,9 @@ const AdminDashboard = () => {
             image: 'mountain',
             duration: '',
             desc: '',
-            price: ''
+            price: '',
+            rideDate: '',
+            location: ''
         });
         setValidationErrors({});
         setIsFormOpen(true);
@@ -361,7 +377,9 @@ const AdminDashboard = () => {
             image: tour.image,
             duration: tour.duration,
             desc: tour.desc,
-            price: tour.price
+            price: tour.price,
+            rideDate: tour.rideDate || '',
+            location: tour.location || ''
         });
         setValidationErrors({});
         setIsFormOpen(true);
@@ -420,7 +438,9 @@ const AdminDashboard = () => {
             image: 'mountain',
             duration: '',
             desc: '',
-            price: ''
+            price: '',
+            rideDate: '',
+            location: ''
         });
         setValidationErrors({});
         setIsFormOpen(false);
@@ -551,6 +571,34 @@ const AdminDashboard = () => {
                                 disabled={isSubmitting}
                             />
                             {validationErrors.price && <div className="field-error-text">{validationErrors.price}</div>}
+                        </div>
+
+                        <div className={`admin-input-group ${validationErrors.rideDate ? 'has-error' : ''}`}>
+                            <label htmlFor="admin-tour-rideDate">Fixed Ride Date</label>
+                            <input 
+                                id="admin-tour-rideDate"
+                                type="text" 
+                                name="rideDate" 
+                                placeholder="e.g. June 25, 2026" 
+                                value={formData.rideDate}
+                                onChange={handleInputChange}
+                                disabled={isSubmitting}
+                            />
+                            {validationErrors.rideDate && <div className="field-error-text">{validationErrors.rideDate}</div>}
+                        </div>
+
+                        <div className={`admin-input-group ${validationErrors.location ? 'has-error' : ''}`}>
+                            <label htmlFor="admin-tour-location">Location</label>
+                            <input 
+                                id="admin-tour-location"
+                                type="text" 
+                                name="location" 
+                                placeholder="e.g. Manali to Leh" 
+                                value={formData.location}
+                                onChange={handleInputChange}
+                                disabled={isSubmitting}
+                            />
+                            {validationErrors.location && <div className="field-error-text">{validationErrors.location}</div>}
                         </div>
 
                         <div className={`admin-input-group ${validationErrors.image ? 'has-error' : ''}`}>
@@ -824,6 +872,16 @@ const AdminDashboard = () => {
                                         </div>
                                     </div>
                                 </div>
+                                <div className="admin-stat-card">
+                                    <div className="admin-stat-icon">👥</div>
+                                    <div className="admin-stat-info">
+                                        <h4>Rider Options</h4>
+                                        <div className="admin-stat-breakdown">
+                                            <span title="Single" className="stat-bd-item badge-beg">Solo: {bookings.filter(b => b.rideType?.toLowerCase() === 'single' || !b.rideType).length}</span>
+                                            <span title="Pillion" className="stat-bd-item badge-exp">Pillion: {bookings.filter(b => b.rideType?.toLowerCase() === 'pillion').length}</span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                     {activeTab === 'bookings' && (
@@ -886,9 +944,8 @@ const AdminDashboard = () => {
                                                 <th>Rider</th>
                                                 <th>Contact Info</th>
                                                 <th>Selected Ride</th>
-                                                <th>Start Date</th>
-                                                <th>Exp Level</th>
-                                                <th>Bike Preference</th>
+                                                <th>Rider Details</th>
+                                                <th>Special Notes</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -896,18 +953,29 @@ const AdminDashboard = () => {
                                                 <tr key={booking.id}>
                                                     <td>{new Date(booking.createdAt).toLocaleString()}</td>
                                                     <td style={{ fontWeight: '600', color: 'white' }}>{booking.name}</td>
-                                                    <td>{booking.email}</td>
-                                                    <td style={{ color: 'var(--accent-color)', fontWeight: '600' }}>{booking.tour}</td>
-                                                    <td>{booking.date}</td>
                                                     <td>
-                                                        <span className={`admin-badge admin-badge-${booking.skillLevel ? booking.skillLevel.toLowerCase() : 'intermediate'}`}>
-                                                            {booking.skillLevel}
-                                                        </span>
+                                                        <div>{booking.email}</div>
+                                                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.2rem' }}>📞 {booking.mobileNumber || 'N/A'}</div>
+                                                    </td>
+                                                    <td style={{ color: 'var(--accent-color)', fontWeight: '600' }}>
+                                                        <div>{booking.tour}</div>
+                                                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.2rem' }}>📅 {booking.date || 'TBD'}</div>
                                                     </td>
                                                     <td>
-                                                        <span className="admin-badge admin-badge-bike">
-                                                            {booking.bikePreference}
-                                                        </span>
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                                                            <span className={`admin-badge ${booking.rideType?.toLowerCase() === 'pillion' ? 'admin-badge-expert' : 'admin-badge-beginner'}`} style={{ textAlign: 'center' }}>
+                                                                {booking.rideType || 'Single'}
+                                                            </span>
+                                                            <span className="admin-badge admin-badge-bike" style={{ borderColor: 'rgba(255, 69, 0, 0.4)', color: 'var(--accent-color)', textAlign: 'center' }}>
+                                                                {booking.bikeCc || '300-500'} CC
+                                                            </span>
+                                                            <span className={`admin-badge admin-badge-${booking.skillLevel ? booking.skillLevel.toLowerCase() : 'intermediate'}`} style={{ textAlign: 'center' }}>
+                                                                {booking.skillLevel}
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                    <td style={{ fontSize: '0.85rem', maxWidth: '200px', whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                                                        {booking.specialNotes || <em style={{ color: '#555' }}>None</em>}
                                                     </td>
                                                 </tr>
                                             ))}
@@ -957,10 +1025,12 @@ const AdminDashboard = () => {
                                                     />
                                                     <div className="admin-ride-card-badges">
                                                         <span className="admin-ride-card-badge-dur">{tour.duration}</span>
+                                                        {tour.rideDate && <span className="admin-ride-card-badge-dur" style={{ background: 'var(--accent-color)' }}>📅 {tour.rideDate}</span>}
                                                     </div>
                                                 </div>
                                                 <div className="admin-ride-card-content">
                                                     <h4>{tour.title}</h4>
+                                                    {tour.location && <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: '-0.3rem 0 0.5rem 0' }}>📍 {tour.location}</p>}
                                                     <p className="admin-ride-card-desc">{tour.desc}</p>
                                                     <div className="admin-ride-card-footer">
                                                         <span className="admin-ride-card-price">{tour.price}</span>

@@ -98,9 +98,37 @@ const Tours = ({ onBookTour }) => {
                             <div className="tour-img-wrapper">
                                 <img src={getTourImage(tour.image)} alt={tour.title} style={tour.image === 'hero' ? { objectPosition: 'top center' } : {}} />
                                 <div className="tour-badge">{tour.duration}</div>
+                                <div className="tour-badge-date" style={{
+                                    position: 'absolute',
+                                    top: '1rem',
+                                    left: '1rem',
+                                    background: 'linear-gradient(135deg, var(--accent-color) 0%, #ff8c00 100%)',
+                                    color: 'white',
+                                    padding: '0.4rem 1rem',
+                                    borderRadius: '20px',
+                                    fontSize: '0.85rem',
+                                    fontWeight: '700',
+                                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                                    boxShadow: '0 4px 10px rgba(255, 69, 0, 0.4)',
+                                    backdropFilter: 'blur(5px)',
+                                    zIndex: 5
+                                }}>
+                                    📅 {tour.rideDate || 'Date: TBD'}
+                                </div>
                             </div>
                             <div className="tour-info">
                                 <h3>{tour.title}</h3>
+                                <div className="tour-location" style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.4rem',
+                                    color: 'var(--text-secondary)',
+                                    fontSize: '0.9rem',
+                                    marginBottom: '0.6rem',
+                                    fontWeight: '500'
+                                }}>
+                                    📍 <span>{tour.location || 'Route Configured Locally'}</span>
+                                </div>
                                 <p>{tour.desc}</p>
                                 <div className="tour-footer">
                                     <span className="price">{tour.price}</span>

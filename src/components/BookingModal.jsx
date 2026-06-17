@@ -5,29 +5,55 @@ const BookingModal = ({ onClose, defaultTour = "" }) => {
     const [step, setStep] = useState(1);
     const [tours, setTours] = useState([]);
     const [formData, setFormData] = useState({
-        tour: defaultTour || 'Mountain Pass Expedition',
+        tour: defaultTour || '',
         date: '',
         name: '',
         email: '',
+        mobileNumber: '',
+        specialNotes: '',
         skillLevel: 'Intermediate',
-        bikePreference: 'Adventure'
+        rideType: 'Single',
+        bikeCc: '300 to 500'
     });
+    const [mobileError, setMobileError] = useState('');
 
     useEffect(() => {
         fetch('/api/rides')
             .then(res => res.json())
             .then(data => {
                 setTours(data);
-                if (!defaultTour && data.length > 0) {
-                    setFormData(prev => ({ ...prev, tour: data[0].title }));
-                }
+                const initialTour = defaultTour || (data.length > 0 ? data[0].title : '');
+                const matchedTour = data.find(t => t.title === initialTour);
+                setFormData(prev => ({
+                    ...prev,
+                    tour: initialTour,
+                    date: matchedTour ? (matchedTour.rideDate || '') : ''
+                }));
             })
             .catch(err => console.error("Failed to fetch rides", err));
     }, [defaultTour]);
 
+    // Automatically sync booking date with selected tour's predefined ride date
+    useEffect(() => {
+        if (tours.length > 0 && formData.tour) {
+            const matchedTour = tours.find(t => t.title === formData.tour);
+            if (matchedTour) {
+                setFormData(prev => {
+                    if (prev.date !== matchedTour.rideDate) {
+                        return { ...prev, date: matchedTour.rideDate || '' };
+                    }
+                    return prev;
+                });
+            }
+        }
+    }, [formData.tour, tours]);
+
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+        if (name === 'mobileNumber') {
+            setMobileError('');
+        }
     };
 
     const nextStep = () => setStep(prev => prev + 1);
@@ -35,6 +61,15 @@ const BookingModal = ({ onClose, defaultTour = "" }) => {
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        
+        // Validate Mobile Number (required, digits, spaces, hyphens, and optional +)
+        const phoneRegex = /^[+]?[0-9\s-]{10,15}$/;
+        if (!phoneRegex.test(formData.mobileNumber.trim())) {
+            setMobileError('Please enter a valid 10-15 digit mobile number.');
+            return;
+        }
+        setMobileError('');
+
         fetch('/api/bookings', {
             method: 'POST',
             headers: {
@@ -58,10 +93,13 @@ const BookingModal = ({ onClose, defaultTour = "" }) => {
     const handleWhatsAppConfirm = () => {
         const message = `Hi MotoEscape! I just submitted a booking request:\n\n` +
             `• Tour: ${formData.tour}\n` +
-            `• Date: ${formData.date}\n` +
+            `• Date: ${formData.date || 'TBD'}\n` +
             `• Rider: ${formData.name}\n` +
-            `• Skill Level: ${formData.skillLevel}\n` +
-            `• Bike: ${formData.bikePreference}\n\n` +
+            `• Contact: ${formData.email} / ${formData.mobileNumber}\n` +
+            `• Notes: ${formData.specialNotes || 'None'}\n` +
+            `• Rider Type: ${formData.rideType}\n` +
+            `• Bike Engine: ${formData.bikeCc} CC\n` +
+            `• Skill Level: ${formData.skillLevel}\n\n` +
             `Let's finalize my adventure details!`;
         const encodedMessage = encodeURIComponent(message);
         window.open(`https://wa.me/919391790693?text=${encodedMessage}`, '_blank');
@@ -104,50 +142,83 @@ const BookingModal = ({ onClose, defaultTour = "" }) => {
                     </div>
                 </div>
 
-                {step === 1 && (
-                    <Motion.div 
-                        initial={{ x: 50, opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        exit={{ x: -50, opacity: 0 }}
-                    >
-                        <h3>Step 1: Choose Tour & Date</h3>
-                        <div className="form-group">
-                            <label htmlFor="tour-select">Select Adventure Route</label>
-                            <select 
-                                id="tour-select"
-                                name="tour" 
-                                value={formData.tour} 
-                                onChange={handleInputChange}
-                            >
-                                {tours.map(t => (
-                                    <option key={t.id} value={t.title}>{t.title} ({t.duration})</option>
-                                ))}
-                                <option value="Custom Group Ride">Custom Group Ride / Private Tour</option>
-                            </select>
-                        </div>
-                        <div className="form-group">
-                            <label htmlFor="date-input">Preferred Start Date</label>
-                            <input 
-                                id="date-input"
-                                type="date" 
-                                name="date" 
-                                value={formData.date} 
-                                onChange={handleInputChange}
-                                required
-                            />
-                        </div>
-                        <div className="modal-actions">
-                            <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
-                            <button 
-                                className="btn btn-primary" 
-                                onClick={nextStep}
-                                disabled={!formData.date}
-                            >
-                                Next Details &rarr;
-                            </button>
-                        </div>
-                    </Motion.div>
-                )}
+                {step === 1 && (() => {
+                    const selectedTourObj = tours.find(t => t.title === formData.tour);
+                    return (
+                        <Motion.div 
+                            initial={{ x: 50, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            exit={{ x: -50, opacity: 0 }}
+                        >
+                            <h3>Step 1: Choose Tour</h3>
+                            
+                            <div style={{ marginBottom: '1.5rem', textAlign: 'center' }}>
+                                <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: '600', textTransform: 'uppercase', display: 'block', marginBottom: '0.3rem' }}>Selected Adventure Route</span>
+                                <h3 style={{ color: 'white', fontFamily: 'var(--font-heading)', fontSize: '1.6rem', margin: 0 }}>
+                                    {formData.tour || 'MotoEscape Expedition'}
+                                </h3>
+                            </div>
+
+                            {selectedTourObj && (
+                                <div style={{
+                                    background: 'rgba(255, 69, 0, 0.05)',
+                                    border: '1px solid rgba(255, 69, 0, 0.2)',
+                                    borderRadius: '12px',
+                                    padding: '1.25rem',
+                                    marginBottom: '1.5rem'
+                                }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                                        <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: '600', textTransform: 'uppercase' }}>Fixed Ride Date:</span>
+                                        <span style={{ color: 'var(--accent-color)', fontSize: '0.95rem', fontWeight: '800' }}>
+                                            📅 {selectedTourObj.rideDate || 'Date: TBD'}
+                                        </span>
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                        <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: '600', textTransform: 'uppercase' }}>Location:</span>
+                                        <span style={{ color: 'white', fontSize: '0.95rem', fontWeight: '700' }}>
+                                            📍 {selectedTourObj.location || 'Route Configured'}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="form-group">
+                                <label htmlFor="notes-textarea">Special Notes (Optional)</label>
+                                <textarea 
+                                    id="notes-textarea"
+                                    name="specialNotes" 
+                                    placeholder="Any custom requests, dietary details, or gear requirements..."
+                                    value={formData.specialNotes} 
+                                    onChange={handleInputChange}
+                                    style={{
+                                        width: '100%',
+                                        background: 'rgba(255, 255, 255, 0.05)',
+                                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                                        padding: '0.9rem 1.2rem',
+                                        borderRadius: '12px',
+                                        color: 'white',
+                                        fontSize: '1rem',
+                                        fontFamily: 'var(--font-body)',
+                                        outline: 'none',
+                                        resize: 'vertical',
+                                        minHeight: '100px'
+                                    }}
+                                />
+                            </div>
+
+                            <div className="modal-actions">
+                                <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
+                                <button 
+                                    className="btn btn-primary" 
+                                    onClick={nextStep}
+                                    disabled={!formData.tour}
+                                >
+                                    Next Details &rarr;
+                                </button>
+                            </div>
+                        </Motion.div>
+                    );
+                })()}
 
                 {step === 2 && (
                     <Motion.div 
@@ -169,44 +240,71 @@ const BookingModal = ({ onClose, defaultTour = "" }) => {
                                     required 
                                 />
                             </div>
+                            <div className="form-row">
+                                <div className="form-group">
+                                    <label htmlFor="email-input">Email Address</label>
+                                    <input 
+                                        id="email-input"
+                                        type="email" 
+                                        name="email" 
+                                        placeholder="john@example.com" 
+                                        value={formData.email} 
+                                        onChange={handleInputChange}
+                                        required 
+                                    />
+                                </div>
+                                <div className="form-group">
+                                    <label htmlFor="mobile-input">Mobile Number</label>
+                                    <input 
+                                        id="mobile-input"
+                                        type="tel" 
+                                        name="mobileNumber" 
+                                        placeholder="e.g. +91 98765 43210" 
+                                        value={formData.mobileNumber} 
+                                        onChange={handleInputChange}
+                                        required 
+                                    />
+                                    {mobileError && <span style={{ color: '#ff4444', fontSize: '0.85rem', marginTop: '0.25rem', display: 'block' }}>{mobileError}</span>}
+                                </div>
+                            </div>
                             <div className="form-group">
-                                <label htmlFor="email-input">Email Address</label>
-                                <input 
-                                    id="email-input"
-                                    type="email" 
-                                    name="email" 
-                                    placeholder="john@example.com" 
-                                    value={formData.email} 
+                                <label htmlFor="skill-select">Riding Experience</label>
+                                <select 
+                                    id="skill-select"
+                                    name="skillLevel" 
+                                    value={formData.skillLevel} 
                                     onChange={handleInputChange}
-                                    required 
-                                />
+                                >
+                                    <option value="Beginner">Beginner (Scenic & slow)</option>
+                                    <option value="Intermediate">Intermediate (Comfortable cruising)</option>
+                                    <option value="Expert">Expert (Challenging off-roads & curves)</option>
+                                </select>
                             </div>
                             <div className="form-row">
                                 <div className="form-group">
-                                    <label htmlFor="skill-select">Riding Experience</label>
+                                    <label htmlFor="rideType-select">Riding Option</label>
                                     <select 
-                                        id="skill-select"
-                                        name="skillLevel" 
-                                        value={formData.skillLevel} 
+                                        id="rideType-select"
+                                        name="rideType" 
+                                        value={formData.rideType} 
                                         onChange={handleInputChange}
                                     >
-                                        <option value="Beginner">Beginner (Scenic & slow)</option>
-                                        <option value="Intermediate">Intermediate (Comfortable cruising)</option>
-                                        <option value="Expert">Expert (Challenging off-roads & curves)</option>
+                                        <option value="Single">Single (Solo Rider)</option>
+                                        <option value="Pillion">Pillion (Passenger)</option>
                                     </select>
                                 </div>
                                 <div className="form-group">
-                                    <label htmlFor="bike-select">Motorcycle Preference</label>
+                                    <label htmlFor="bikeCc-select">Bike Engine Capacity</label>
                                     <select 
-                                        id="bike-select"
-                                        name="bikePreference" 
-                                        value={formData.bikePreference} 
+                                        id="bikeCc-select"
+                                        name="bikeCc" 
+                                        value={formData.bikeCc} 
                                         onChange={handleInputChange}
                                     >
-                                        <option value="Adventure">Adventure Tourer (BMW GS Style)</option>
-                                        <option value="Cruiser">Cruiser (Harley-Davidson Style)</option>
-                                        <option value="Sport-Touring">Sport Touring (Kawasaki/Honda Style)</option>
-                                        <option value="Bring Own Bike">I will bring my own motorcycle</option>
+                                        <option value="0 to 300">0 to 300 CC</option>
+                                        <option value="300 to 500">300 to 500 CC</option>
+                                        <option value="500 to 700">500 to 700 CC</option>
+                                        <option value="700+">700+ CC</option>
                                     </select>
                                 </div>
                             </div>
@@ -215,7 +313,7 @@ const BookingModal = ({ onClose, defaultTour = "" }) => {
                                 <button 
                                     type="submit" 
                                     className="btn btn-primary"
-                                    disabled={!formData.name || !formData.email}
+                                    disabled={!formData.name || !formData.email || !formData.mobileNumber}
                                 >
                                     Submit Booking
                                 </button>
@@ -232,14 +330,17 @@ const BookingModal = ({ onClose, defaultTour = "" }) => {
                     >
                         <div className="success-icon">🎉</div>
                         <h3>Booking Request Received!</h3>
-                        <p>Thank you, <strong>{formData.name}</strong>. We've recorded your interest in the <strong>{formData.tour}</strong> starting on <strong>{formData.date}</strong>.</p>
+                        <p>Thank you, <strong>{formData.name}</strong>. We've recorded your interest in the <strong>{formData.tour}</strong> starting on <strong>{formData.date || 'TBD'}</strong>.</p>
                         
                         <div className="summary-box">
                             <h4>Booking Summary:</h4>
-                            <ul>
+                            <ul style={{ textAlign: 'left' }}>
                                     <li><strong>Experience Level:</strong> {formData.skillLevel}</li>
-                                    <li><strong>Selected Motorcycle:</strong> {formData.bikePreference}</li>
+                                    <li><strong>Rider Type:</strong> {formData.rideType}</li>
+                                    <li><strong>Bike CC:</strong> {formData.bikeCc} CC</li>
                                     <li><strong>Contact Email:</strong> {formData.email}</li>
+                                    <li><strong>Mobile Number:</strong> {formData.mobileNumber}</li>
+                                    {formData.specialNotes && <li><strong>Special Notes:</strong> {formData.specialNotes}</li>}
                             </ul>
                         </div>
 
