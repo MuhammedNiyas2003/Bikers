@@ -17,7 +17,7 @@ const Tours = ({ onBookTour }) => {
     const [tours, setTours] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const waNumber = '919391790693';
+    const waNumber = '918951275713';
 
     const fetchTours = () => {
         setLoading(true);

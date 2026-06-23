@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // Base WhatsApp Number from user
-    const waNumber = '919391790693';
+    const waNumber = '918951275713';
 
     // Get all enquire buttons
     const enquireButtons = document.querySelectorAll('.wa-enquire-btn');

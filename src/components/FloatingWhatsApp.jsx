@@ -3,7 +3,7 @@ import { motion as Motion } from 'framer-motion';
 const FloatingWhatsApp = () => {
     return (
         <Motion.a 
-            href="https://wa.me/919391790693" 
+            href="https://wa.me/918951275713" 
             className="floating-wa" 
             target="_blank" 
             rel="noopener noreferrer" 

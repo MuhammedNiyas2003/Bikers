@@ -102,7 +102,7 @@ const BookingModal = ({ onClose, defaultTour = "" }) => {
             `• Skill Level: ${formData.skillLevel}\n\n` +
             `Let's finalize my adventure details!`;
         const encodedMessage = encodeURIComponent(message);
-        window.open(`https://wa.me/919391790693?text=${encodedMessage}`, '_blank');
+        window.open(`https://wa.me/918951275713?text=${encodedMessage}`, '_blank');
         onClose();
         setStep(1);
     };
