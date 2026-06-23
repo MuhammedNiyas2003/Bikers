@@ -54,6 +54,13 @@
     padding-bottom: 1rem;
 }
 
+.admin-header-title-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
 .admin-header h2 {
     font-size: 2.2rem;
     margin-bottom: 0.5rem;
@@ -704,12 +711,145 @@
 }
 
 @media (max-width: 768px) {
+    /* Main Layout */
+    .admin-modal-content {
+        padding: 1.5rem 1rem !important;
+        height: 92vh !important;
+        border-radius: 16px !important;
+    }
+
+    .admin-close-btn {
+        top: 1rem;
+        right: 1rem;
+        font-size: 1.8rem;
+    }
+
+    .admin-header h2 {
+        font-size: clamp(1.4rem, 5vw, 2.2rem);
+    }
+
+    /* Title Bar spacing */
+    .admin-header-title-bar {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.8rem;
+        width: 100%;
+    }
+
+    .admin-header-title-bar button {
+        align-self: flex-end;
+    }
+
+    /* Tab navigation wrapping */
+    .admin-tabs {
+        gap: 0.8rem;
+        flex-wrap: wrap;
+        margin-top: 0.8rem;
+    }
+    
+    .admin-tab-btn {
+        font-size: 0.9rem;
+        padding: 0.3rem 0;
+    }
+
+    /* Controls Bar full-width stacking */
     .admin-controls-bar {
         flex-direction: column;
         align-items: stretch;
+        gap: 1rem;
     }
+
+    .admin-search-wrapper {
+        min-width: 100%;
+    }
+
     .admin-filters-group {
         justify-content: space-between;
+        width: 100%;
+        gap: 0.5rem;
+    }
+
+    .admin-filter-control {
+        flex: 1;
+        justify-content: space-between;
+    }
+
+    .admin-filter-control select {
+        flex: 1;
+        max-width: 75%;
+    }
+
+    /* Compact 2-Column Stats Cards Grid */
+    .admin-stats-container {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.8rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .admin-stat-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+        padding: 0.8rem;
+        border-radius: 12px;
+    }
+
+    .admin-stat-icon {
+        width: 36px;
+        height: 36px;
+        font-size: 1.3rem;
+        border-radius: 8px;
+    }
+
+    .admin-stat-value {
+        font-size: 1.3rem;
+    }
+
+    /* Table columns padding & sizing */
+    .admin-table th, 
+    .admin-table td {
+        padding: 0.6rem 0.8rem;
+        font-size: 0.85rem;
+    }
+
+    /* Buttons & Form Controls Touch Targets (Min 44px) */
+    .admin-btn-action {
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.5rem 1rem;
+    }
+
+    .admin-input-group input,
+    .admin-input-group textarea,
+    .admin-input-group select {
+        min-height: 44px;
+        padding: 0.75rem 1rem;
+    }
+
+    .custom-file-upload {
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .admin-form-modal-content {
+        padding: 1.5rem 1rem;
+        width: 95%;
+        max-height: 90vh;
+    }
+
+    .admin-form-actions {
+        flex-direction: column-reverse;
+        gap: 0.8rem;
+    }
+
+    .admin-form-actions button {
+        width: 100%;
+        min-height: 44px;
     }
 }
 

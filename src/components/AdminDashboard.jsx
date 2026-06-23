@@ -817,9 +817,9 @@ const AdminDashboard = () => {
                 ) : (
                     <>
                         <div className="admin-header">
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                            <div className="admin-header-title-bar">
                                 <h2 style={{ marginBottom: 0 }}>MotoEscape <span>Admin Dashboard</span></h2>
-                                <button className="admin-btn-action admin-btn-delete" style={{ padding: '0.5rem 1rem' }} onClick={handleLogout}>Log Out</button>
+                                <button className="admin-btn-action admin-btn-delete" onClick={handleLogout}>Log Out</button>
                             </div>
                             <div className="admin-tabs">
                                 <button 
