@@ -764,8 +764,7 @@ const AdminDashboard = () => {
             exit="hidden"
         >
             <Motion.div 
-                className="admin-modal-content"
-                style={!isAuthenticated ? { maxWidth: '450px', height: 'auto', padding: '3rem' } : {}}
+                className={`admin-modal-content ${!isAuthenticated ? 'login-view' : ''}`}
                 variants={modalVariants}
                 onClick={(e) => e.stopPropagation()}
             >
@@ -951,17 +950,17 @@ const AdminDashboard = () => {
                                         <tbody>
                                             {filteredBookings.map(booking => (
                                                 <tr key={booking.id}>
-                                                    <td>{new Date(booking.createdAt).toLocaleString()}</td>
-                                                    <td style={{ fontWeight: '600', color: 'white' }}>{booking.name}</td>
-                                                    <td>
+                                                    <td data-label="Date Submitted">{new Date(booking.createdAt).toLocaleString()}</td>
+                                                    <td data-label="Rider" style={{ fontWeight: '600', color: 'white' }}>{booking.name}</td>
+                                                    <td data-label="Contact Info">
                                                         <div>{booking.email}</div>
                                                         <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.2rem' }}>📞 {booking.mobileNumber || 'N/A'}</div>
                                                     </td>
-                                                    <td style={{ color: 'var(--accent-color)', fontWeight: '600' }}>
+                                                    <td data-label="Selected Ride" style={{ color: 'var(--accent-color)', fontWeight: '600' }}>
                                                         <div>{booking.tour}</div>
                                                         <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '0.2rem' }}>📅 {booking.date || 'TBD'}</div>
                                                     </td>
-                                                    <td>
+                                                    <td data-label="Rider Details">
                                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
                                                             <span className={`admin-badge ${booking.rideType?.toLowerCase() === 'pillion' ? 'admin-badge-expert' : 'admin-badge-beginner'}`} style={{ textAlign: 'center' }}>
                                                                 {booking.rideType || 'Single'}
@@ -974,7 +973,7 @@ const AdminDashboard = () => {
                                                             </span>
                                                         </div>
                                                     </td>
-                                                    <td style={{ fontSize: '0.85rem', maxWidth: '200px', whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                                                    <td data-label="Special Notes" style={{ fontSize: '0.85rem', maxWidth: '200px', whiteSpace: 'normal', wordBreak: 'break-word' }}>
                                                         {booking.specialNotes || <em style={{ color: '#555' }}>None</em>}
                                                     </td>
                                                 </tr>

@@ -30,6 +30,12 @@
     font-family: var(--font-body);
 }
 
+.admin-modal-content.login-view {
+    max-width: 450px;
+    height: auto;
+    padding: 3rem;
+}
+
 .admin-close-btn {
     position: absolute;
     top: 1.5rem;
@@ -870,6 +876,63 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
+    }
+
+    .admin-modal-content.login-view {
+        padding: 2rem 1.5rem !important;
+        width: calc(100% - 1.5rem) !important;
+        margin: auto;
+    }
+
+    /* Convert table to cards on mobile */
+    .admin-table, 
+    .admin-table thead, 
+    .admin-table tbody, 
+    .admin-table th, 
+    .admin-table td, 
+    .admin-table tr {
+        display: block;
+    }
+    
+    .admin-table thead {
+        display: none;
+    }
+    
+    .admin-table tr {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.6rem;
+    }
+    
+    .admin-table td {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.03) !important;
+        padding: 0.5rem 0 !important;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        text-align: right;
+        gap: 1rem;
+        width: 100%;
+    }
+
+    .admin-table td:last-child {
+        border-bottom: none !important;
+    }
+    
+    .admin-table td::before {
+        content: attr(data-label);
+        font-weight: 700;
+        color: var(--text-secondary);
+        text-align: left;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.5px;
+        flex-shrink: 0;
     }
 }
 
