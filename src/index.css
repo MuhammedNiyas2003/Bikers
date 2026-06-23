@@ -1018,6 +1018,13 @@ footer {
         width: 100%;
     }
 
+    .tour-footer {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+        padding-top: 1rem;
+    }
+
     .tour-actions-btns {
         flex-direction: column;
         width: 100%;
